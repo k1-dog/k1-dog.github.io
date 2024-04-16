@@ -1,0 +1,59 @@
+// '#0091FF', '#F7B500', '#44D7B6'
+$mm-cell-nums: 24;
+
+$miku-grid-preCls: "#{$m9-preCls}-grid";
+$miku-g-row: "#{$miku-grid-preCls}__row";
+$miku-g-col: "#{$miku-grid-preCls}__col";
+
+// ===========\    __
+// |           |   \/ 10px
+// |           |------------
+// |===========|
+
+$miku-flex-justify-factory: (
+  center: center,
+  start: flex-start,
+  end: flex-end,
+  between: space-between,
+  around: space-around,
+);
+$miku-flex-align-factory: (
+  center: center,
+  start: flex-start,
+  end: flex-end,
+);
+
+.#{$miku-grid-preCls} {
+  &__row {
+    display: block;
+    @include m9-clearfix();
+    &.flex {
+      display: flex;
+      @each $flexJustifyKey in map-keys($miku-flex-justify-factory) {
+        &.Jus-#{$flexJustifyKey} {
+          justify-content: map-get($miku-flex-justify-factory, $flexJustifyKey);
+        }
+      }
+      @each $flexAlignKey in map-keys($miku-flex-align-factory) {
+        &.Aln-#{$flexAlignKey} {
+          align-items: map-get($miku-flex-align-factory, $flexAlignKey);
+        }
+      }
+    }
+  }
+  &__col {
+    color: #fff;
+    &.flt {
+      float: left;
+    }
+    &.frt {
+      float: right;
+    }
+  }
+}
+
+@for $i from 1 through $mm-cell-nums {
+  .#{$miku-g-col}-#{$i} {
+    width: percentage(calc($i / $mm-cell-nums));
+  }
+}

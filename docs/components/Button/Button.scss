@@ -1,0 +1,220 @@
+$miku-btn-preCls : "#{$m9-preCls}-btn";
+
+.#{$miku-btn-preCls} + .#{$miku-btn-preCls} { margin-left: 10px; }
+
+.#{$miku-btn-preCls} {
+    // 按钮内部文字溢出样式
+    &__text {
+      // @include m9-text-overflow();
+      color: inherit;
+    }
+    
+    /* 外部轮廓结构样式 */
+    &--outline {
+      border: 1px solid #676767;
+      box-shadow: 0 0 0 1px #cc83ff;
+    }
+
+    @mixin btn-size-func($size: 'medium', $btnCls) {
+      & > #{$btnCls} {
+        @if ($size == 'small') {
+          min-width: 2.5rem;
+          min-height: 1.5rem;
+          font-size: $miku-font-small;
+        }@else if ($size == 'medium') {
+          min-width: 3rem;
+          min-height: 1.8rem;
+          font-size: $miku-font-default;
+        }@else if ($size == 'large') {
+          min-width: 4rem;
+          min-height: 2rem;
+          font-size: $miku-font-large;
+        }
+      }
+    }
+
+    /* 边框结构样式 */
+    border: 2px solid var(--gray-dark-4);
+    border-radius: 5px;
+
+    // 边距结构样式
+    margin: 0;
+    padding: 0.3rem;
+
+    // 排布布局样式
+    @include m9-flex-center('inline');
+
+    /* 内部内容样式 */
+    cursor: pointer;
+
+    /* 特殊样式 */
+    user-select: none; // 防止快速点击按钮时 其中的文本会被选取
+
+    // 内层 - 按钮 ~样式::$--btn
+    &--btn {
+      border: 2px solid;
+      border-radius: 4px;
+      transition: all .13s;
+    }
+
+    $btn: #{&}--btn;
+
+    &-type-main {
+      box-shadow: 0 0 0 1px $button-main-outlineClr;
+      & > #{$btn} {
+        color: $button-main-fontClr;
+        background: $button-main-bgClr;
+
+        &:active, &:hover, &:focus {
+            color: $button-main-active-fontClr;
+            background: $button-main-active-bgClr;
+            border-color: $button-main-active-borderClr;
+        }
+      }
+    }
+
+    &-type-pure {
+      box-shadow: 0 0 0 1px $button-pure-outlineClr;
+      & > #{$btn} {
+        color: $button-pure-fontClr;
+        background: $button-pure-bgClr;
+
+        &:active, &:hover, &:focus {
+            color: $button-pure-active-fontClr;
+            background: $button-pure-active-bgClr;
+            border-color: $button-pure-active-borderClr;
+        }
+      }
+    } 
+
+    &-type-danger {
+      box-shadow: 0 0 0 1px $button-danger-outlineClr;
+      & > #{$btn} {
+          color: $button-danger-fontClr;
+          background: $button-danger-bgClr;
+
+          &:hover, &:active, &:focus {
+              color: $button-danger-active-fontClr;
+              background: $button-danger-active-bgClr;
+              border-color: $button-danger-active-borderClr;
+          }
+      }
+    }
+
+    $circle_cls: #{&}-shape-circle;
+    &-size-small {
+        @include btn-size-func('small', $btn);
+        &#{$circle_cls} { width: 1.5rem; height: 1.5rem; }
+    }
+
+    &-size-medium {
+        @include btn-size-func('medium', $btn);
+        &#{$circle_cls} { width: 2rem; height: 2rem; }
+    }
+
+    &-size-large {
+        @include btn-size-func('large', $btn);
+        &#{$circle_cls} { width: 2.5rem; height: 2.5rem; }
+    }
+
+    &-shape-circle {
+      border-radius: 50%;
+      > #{$btn} {
+        width: 100%;
+        height: 100%;
+        min-width: unset;
+        min-height: unset;
+        border-radius: 50%;
+      }
+    }
+
+    /* &-shape-square {} */
+
+    &-type-mirai {
+        @include m9-mirai-theme(4em, 2.5em, $theme: 'purple');
+        &-blue {
+            @include m9-mirai-theme(4em, 2.5em, $theme: 'blue');
+        }
+        &-green {
+            @include m9-mirai-theme(4em, 2.5em, $theme: 'green');
+        }
+        &-orange {
+            @include m9-mirai-theme(4em, 2.5em, $theme: 'orange');
+        }
+    }
+
+    &-type-k1 {
+      // 按钮内部文字 - 提取到外部; 悬浮时 再让文字归位
+      $layerLastOpacity: 0.6;
+      // 分身之间的间隙距离 -> 5px
+      $layerGapDistance: 3px;
+      // 分身之间的透明度公差 -> 0.2
+      $layerOpacityDiff: 0.2;
+      // 最上层本体阴影投影立体样式
+      $layerLastShadow: 0 0 15px #2000ff;
+      
+      // 本体与分身 - 倾斜
+      $style3D: rotate(-35deg) skew(20deg);
+
+      transform: $style3D;
+
+      position: relative;
+
+      margin: 10px;
+
+      background-color: transparent;
+
+      border: 2px solid #b3b3ff;
+
+      box-shadow: $layerLastShadow;
+
+      &::after, &::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 2px solid #b3b3ff;
+        transition: all 0.5s linear;
+        // animation: k1-layer-rotate 5s infinite linear;
+        // animation-play-state: paused;
+      }
+      &::before {
+        top: $layerGapDistance * 1;
+        left: - $layerGapDistance * 2;
+        opacity: $layerLastOpacity - $layerOpacityDiff * 1;
+      }
+      &::after {
+        top: $layerGapDistance * 2;
+        left: - $layerGapDistance * 3;
+        opacity: $layerLastOpacity - $layerOpacityDiff * 0;
+      }
+      // 鼠标悬浮 - 各层间展开旋转 - 镂空<-内嵌闪电下雨天(理想形态)->
+      &:hover {
+        & {
+          transform: translate(5px, -5px) inherit;
+        }
+        &::after {
+          transform: translate(-10px, 10px) inherit;
+        }
+      }
+      &:focus {
+        &::before {
+          top: $layerGapDistance * 1.5;
+          left: - $layerGapDistance * 2.5;
+        }
+        &::after {
+          top: $layerGapDistance * 2.5;
+          left: - $layerGapDistance * 3.5;
+        }
+      }
+    }
+}
+
+@keyframes k1-layer-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

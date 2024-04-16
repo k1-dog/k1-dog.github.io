@@ -1,0 +1,66 @@
+$miku-pop-preCls: "#{$m9-preCls}-pop";
+$miku-pop-arrow: "#{$miku-pop-preCls}__arrow";
+
+// /---------\
+// |         |
+// |         |
+// |         |
+// |         |
+// |_________|
+//      △
+
+$popper-constructor: (
+  display: inline-block,
+  overflow: hidden,
+  box-shadow: 0 0 4px #282a36,
+  border-radius: 7px,
+  background-color: $m9-element-active-bgClr,
+  padding: 10px,
+);
+
+$popper-arrow: ();
+
+@mixin factory-popper() {
+  @each $popCssProperty in map-keys($popper-constructor) {
+    #{$popCssProperty}: map-get($popper-constructor, $popCssProperty);
+  }
+}
+
+.#{$miku-pop-preCls} {
+  $pop3rReferMargin: 0.8rem;
+  $pop3rArrowSize: 0.5rem;
+  position: absolute;
+  &__inner {
+    width: max-content;
+    @include factory-popper();
+  }
+  &.place-top {
+    padding-bottom: $pop3rReferMargin;
+    &::after {
+      @include m9-trangle($type: "down", $size: $pop3rArrowSize);
+      left: calc(50% - $pop3rArrowSize / 2);
+    }
+  }
+  &.place-down {
+    padding-top: $pop3rReferMargin;
+    &::after {
+      @include m9-trangle($type: "top", $size: $pop3rArrowSize);
+      left: calc(50% - $pop3rArrowSize / 2);
+    }
+  }
+  &.place-left {
+    padding-right: $pop3rReferMargin;
+    &::after {
+      @include m9-trangle($type: "right", $size: $pop3rArrowSize);
+      top: calc(50% - $pop3rArrowSize / 2);
+    }
+  }
+  &.place-right {
+    padding-left: $pop3rReferMargin;
+    &::after {
+      @include m9-trangle($type: "left", $size: $pop3rArrowSize);
+      left: -6px;
+      top: calc(50% - $pop3rArrowSize / 2);
+    }
+  }
+}

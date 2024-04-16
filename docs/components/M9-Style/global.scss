@@ -1,0 +1,9 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.VPHomeHero > .container > .main > .name > .clip {
+  background-image: linear-gradient(45deg, #ce0000, #800080);
+  background-clip: text;
+}

@@ -1,0 +1,194 @@
+//美九未来的scss全局状态配置文件
+$m9-preCls: miku;
+
+/*
+ * 字体变量配置
+ */
+$miku-font-small: 0.8rem;
+$miku-font-default: 1rem;
+$miku-font-large: 1.2rem;
+$miku-font-color-dark: rgba(0, 0, 0, 0.65); // 深色主题
+$miku-font-color-shallow: rgba(255, 255, 255, 0.75); // 亮色主题
+$miku-font-color-unactive: rgba(0, 0, 0, 0.25); // 未被点亮时
+$miku-font-weight-base: 500;
+
+$m9-element-fontClr: var(--element-fontClr);
+$m9-element-borderClr: var(--element-borderClr);
+$m9-element-bgClr: var(--element-bgClr);
+
+$m9-element-active-borderClr: var(--element-active-borderClr);
+$m9-element-active-bgClr: var(--element-active-bgClr);
+
+$m9-element-disabled-fontClr: var(--element-disabled-fontClr);
+$m9-element-disabled-bgClr: var(--element-disabled-bgClr);
+$m9-element-disabled-borderClr: var(--element-disabled-borderClr);
+
+$m9-inner-element-fontClr: var(--inner-element-fontClr);
+$m9-inner-element-bgClr: var(--inner-element-bgClr);
+$m9-inner-element-borderSideClr: var(--inner-element-borderSideClr);
+
+$m9-inner-element-active-bgClr: var(--inner-element-active-bgClr);
+
+$m9-inner-element-disabled-bgClr: var(--inner-element-disabled-bgClr);
+$m9-inner-element-disabled-borderSideClr: var(--inner-element-disabled-borderSideClr);
+
+$m9-switcher-fontClr: #000000;
+$m9-switcher-bgClr: #ababab;
+$m9-switcher-borderClr: #585158;
+$m9-switcher-active-bgClr: #993fff;
+$m9-switcher-active-borderClr: #ddbfff;
+
+$m9-dividerClr: #c9c9e1;
+
+$m9-form-shadowClr: var(--form-shadowClr);
+
+$m9-table-thead-fontClr: var(--table-thead-fontClr);
+$m9-table-trow-divideClr: var(--table-trow-divideClr);
+$m9-table-trow-bgClr: var(--table-trow-bgClr);
+
+$m9-menu-header-shadowClr: var(--menu-header-shadowClr);
+
+/*
+ * 美九按钮主题样式变量配置
+ */
+$button-danger-fontClr: var(--button-danger-fontClr);
+$button-danger-bgClr: var(--button-danger-bgClr);
+$button-danger-outlineClr: var(--button-danger-outlineClr);
+
+$button-danger-active-fontClr: #f7f7f7;
+$button-danger-active-bgClr: #d45454;
+$button-danger-active-borderClr: #ffabab;
+
+$button-pure-fontClr: var(--button-pure-fontClr);
+$button-pure-bgClr: var(--button-pure-bgClr);
+$button-pure-outlineClr: var(--button-pure-outlineClr);
+
+$button-pure-active-fontClr: #d7e1ff;
+$button-pure-active-bgClr: #698ae1;
+$button-pure-active-borderClr: #a9c7ff;
+
+$button-main-fontClr: var(--button-main-fontClr);
+$button-main-bgClr: var(--button-main-bgClr) ;
+$button-main-outlineClr: var(--button-main-outlineClr);
+
+$button-main-active-fontClr: #f8f4ff;
+$button-main-active-bgClr: #a86dff;
+$button-main-active-borderClr: #da9bff;
+
+/*
+ * 美九未来主题风格变量配置
+ */
+$mirai-map: (
+  mirai-color-purple: #ce93d8,
+  mirai-color-blue: #80deea,
+  mirai-color-green: #a5d6a7,
+  mirai-color-orange: #ffb74d,
+);
+
+$miku-aoi-0: #14D6CC;
+$miku-aoi-1: #2FB391;
+$miku-orange-0: #F7B500;
+$miku-yellow-0: #f7f400;
+$miku-blue-0: #0091FF;
+
+/*
+ * 美九主题风格变量配置
+ */
+
+:root {
+  --green: #47cf73;
+  --yellow: #f7f400;
+  --purple: #ae63e4;
+  --red: #ff3c41;
+  --blue: #0ebeff;
+  --gray: #9b9dad;
+  --aoi-0: #14d6cc;
+  --orange-0: #f7b500;
+}
+[m9-theme="dark"]:root {
+  body {
+    background-color: #1b1b1f;
+  }
+  --element-fontClr: #d9deee;
+  --element-bgClr: #444447;
+  --element-borderClr: #f5ecfd;
+
+  --element-active-borderClr: #cb90ff;
+  --element-active-bgClr: #6c6c6c;
+
+  --element-disabled-fontClr: #9ea2ae;
+  --element-disabled-borderClr: #c1a2dc;
+  --element-disabled-bgClr: #595e74;
+
+  --inner-element-bgClr: #2e2e2e;
+  --inner-element-borderSideClr: #ffff8c;
+  --inner-element-fontClr: #d9deee;
+
+  --inner-element-active-bgClr: #5f6064;
+  
+  --inner-element-disabled-bgClr: #56565f;
+  --inner-element-disabled-borderSideClr: #b8b08f;
+
+  --button-main-fontClr: #cdbaeb;
+  --button-main-bgClr: #5e5266;
+  --button-main-outlineClr: #cc83ff;
+
+  --button-pure-fontClr: #899acc;
+  --button-pure-bgClr: #414b66;
+  --button-pure-outlineClr: #bbccff;
+
+  --button-danger-fontClr: #d08787;
+  --button-danger-bgClr: #7f2929;
+  --button-danger-outlineClr: #ffb3b3;
+
+  --form-shadowClr: #ba92ff;
+
+  --table-thead-fontClr: #e1e8f2;
+  --table-trow-divideClr: #dcdcff;
+  --table-trow-bgClr: #373737;
+
+  --menu-header-shadowClr: #c8d2ff;
+}
+
+[m9-theme="light"]:root {
+  body {
+    background-color: #ffffff;
+  }
+  --element-fontClr: #28292c;
+  --element-bgClr: #f2f3ff;
+  --element-borderClr: #efddff;
+  --element-active-borderClr: #988fff;
+  --element-active-bgClr: #e2e5ff;
+
+  --element-disabled-fontClr: #b6c6f6;
+  --element-disabled-borderClr: #c8c3ff;
+  --element-disabled-bgClr: #e0e3ff;
+
+  --inner-element-bgClr: #d4e0ff;
+  --inner-element-borderSideClr: #772fff;
+  --inner-element-fontClr: #28292c;
+  --inner-element-active-bgClr: #f1f5ff;
+  
+  --inner-element-disabled-bgClr: #c3d6ff;
+  --inner-element-disabled-borderSideClr: #93a6ff;
+
+  --button-main-fontClr: #9d2dff;
+  --button-main-bgClr: #eadaff;
+  --button-main-outlineClr: #e087ff;
+
+  --button-pure-fontClr: #5d6cff;
+  --button-pure-bgClr: #dce6ff;
+  --button-pure-outlineClr: #8c9dff;
+
+  --button-danger-fontClr: #d62626;
+  --button-danger-bgClr: #ffd4d4;
+  --button-danger-outlineClr: #ffb1a1;
+
+  --form-shadowClr: #d6d9ff;
+
+  --table-thead-fontClr: #353535;
+  --table-trow-divideClr: #dbdbdb;
+  --table-trow-bgClr: #fcfcff;
+
+  --menu-header-shadowClr: #d6d4ff;
+}

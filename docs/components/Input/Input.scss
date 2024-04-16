@@ -1,0 +1,81 @@
+$miku-input-preCls : "#{$m9-preCls}-input";
+
+.#{$miku-input-preCls} + .#{$miku-input-preCls} { margin-left: 10px; }
+
+.#{$miku-input-preCls} {
+    /* 外部结构样式 */
+
+    /* 内部结构样式 */
+    position: relative;
+    display: inline-block;
+    padding: .4em .6em;
+    border: 1px solid $m9-element-borderClr;
+    border-radius: 4px;
+    color: $m9-element-fontClr;
+    background-color: $m9-element-bgClr;
+
+    /* 特殊样式 */
+    user-select: none; // 防止快速点击按钮时 其中的文本会被选取
+    transition: all .13s;
+
+    &:hover {
+        background-color: $m9-element-active-bgClr;
+    }
+
+    &__disable {
+        background-color: $m9-element-disabled-bgClr;
+
+        &:hover {
+            background-color: $m9-element-active-bgClr;
+        }
+
+        > input {
+            cursor: not-allowed;
+            + .miku-input__label {
+              color: $m9-element-disabled-fontClr;
+            }
+            background-color: $m9-element-bgClr;
+            border-color: $m9-inner-element-disabled-borderSideClr;
+        }
+    }
+
+    &__inner {
+        padding: .3em .5em;
+
+        border-radius: 3px;
+        border-left: 3px solid $m9-inner-element-borderSideClr;
+        border-right: 3px solid $m9-inner-element-borderSideClr;
+        background-color: $m9-inner-element-bgClr;
+
+        &:focus {
+            background-color: $m9-inner-element-active-bgClr;
+        }
+        &:focus + .#{$miku-input-preCls}__label {
+          top: 0px;
+          left: 1rem;
+          font-size: 0.8rem;
+        }
+    }
+
+    &__label {
+      position: absolute;
+      top: 50%;
+      left: 1rem;
+      font-size: 0.9rem;
+      transform: translateY(-50%);
+
+      transition: all 0.2s;
+    }
+
+    &-size-small {
+        font-size: $miku-font-small;
+    }
+
+    &-size-medium {
+        font-size: $miku-font-default;
+    }
+
+    &-size-large {
+        font-size: $miku-font-large;
+    }
+}

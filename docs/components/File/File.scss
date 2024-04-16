@@ -1,0 +1,233 @@
+$miku-file-preCls: '#{$m9-preCls}-file';
+
+.#{$miku-file-preCls} + .#{$miku-file-preCls} {
+  margin-left: 10px;
+}
+
+.miku-overlay {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+.#{$miku-file-preCls} {
+  /* 外部结构样式 */
+  width: 12rem;
+  /* 内部结构样式 */
+  padding: 0.3em 0.5em;
+  border: 1px solid $m9-element-borderClr;
+  border-radius: 5px;
+
+  /* 特殊样式 */
+  transition: all 0.22s;
+
+  &--animation {
+    &-enter-active, &-leave-active {
+      transition: 'all 1000ms cubic-bezier(0, 0, 0.7, 1)';
+    }
+    &-enter-active {
+      animation: miku-file-fade-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    &-leave-active {
+      animation: miku-file-fade-exit 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  &--header {
+    @include m9-flex-center();
+    justify-content: flex-start;
+    width: 100%;
+    border-bottom: 2px dashed $m9-dividerClr;
+    padding: 4px;
+    margin-bottom: 12px;
+    &__icon {
+      margin-right: 8px;
+      width: 2rem; height: 2rem;
+      color: $m9-element-fontClr;
+      background-color: $m9-element-bgClr;
+      border-radius: 50%;
+      padding: 0.2rem;
+    }
+    &__title {
+      font-size: 1rem;
+      font-weight: bold;
+      color: $m9-element-fontClr;
+    }
+  }
+
+  &--filelist {
+    max-height: 10rem;
+    overflow-y: scroll;
+
+    &__item {
+      background: $m9-element-bgClr;
+      padding: 4px;
+      width: 100%;
+      height: 6rem;
+      overflow: hidden;
+      border-radius: 8px;
+      margin-top: 10px;
+      @include m9-flex-center();
+    }
+  }
+
+  .float-with-img {
+    float: right;
+    width: calc(100% - 47px);
+    /* margin-left: -5px; */
+    padding: 0 5px;
+
+    .desc-wrap {
+      overflow: hidden;
+      span {
+        color: $m9-element-fontClr;
+      }
+      .file-name {
+        @include m9-text-overflow();
+        float: left;
+      }
+      .file-percentage {
+        float: left;
+        font-weight: 700;
+      }
+      .file-status {
+        float: left;
+        &.file-success::before {
+          content: '✔';
+          color: #16c60c;
+        }
+        &.file-uploading::before {
+          content: '🌊';
+          color: #259dff;
+        }
+        &.file-failed::before {
+          content: '❌';
+        }
+      }
+      .file-close {
+        float: right;
+        cursor: pointer;
+        &::before {
+          content: '❌';
+        }
+      }
+    }
+
+    .progress-bar {
+      width: calc(100% - 47px);
+      height: 4px;
+      display: inline-block;
+      /* float: right; */
+      border-radius: 25px;
+      @include m9-7-colorful;
+    }
+  }
+
+  &__uploader {
+    font-size: 0.8rem;
+    color: #fff;
+    padding: 0.5rem;
+    background-color: $m9-inner-element-bgClr;
+    border-radius: 6px;
+    &--label {
+      // 占位元素 -- 没有图片时, 显示个骨架
+      height: 5rem;
+      display: block;
+      border: dashed 1px #eda3ff;
+      position: relative;
+      &::before {
+        content: '➕';
+        position: absolute;
+        font-size: 2rem;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+      }
+    }
+  }
+
+  &__preview {
+    width: 30rem;
+    height: 30rem;
+
+    .action {
+      display: block;
+      font-size: 3em;
+      cursor: pointer;
+      transition: all 0.32s;
+      &:hover {
+        transform: scale(1.2);
+      }
+    }
+
+    &--img {
+      position: absolute;
+      border-radius: 20px;
+      transition: all 0.3s;
+      box-shadow: 0 0 2em #75e7e7c9;
+    }
+
+    &--close {
+      position: absolute;
+      top: 1em;
+      right: 3em;
+    }
+
+    &--left {
+      position: absolute;
+      top: 45%;
+      left: 3em;
+    }
+
+    &--right {
+      position: absolute;
+      top: 45%;
+      right: 3em;
+    }
+
+    &--actionspanel {
+      position: absolute;
+      background-color: #6c6c6cd1;
+      border-radius: 4px;
+      padding: 2px 4px;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      @include m9-flex-center();
+
+      .action:not(:last-child) {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+@keyframes miku-file-fade-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes miku-file-fade-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}

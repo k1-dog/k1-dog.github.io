@@ -1,0 +1,166 @@
+$miku-nav-preCls : "#{$m9-preCls}-nav";
+
+.#{$miku-nav-preCls} {
+  $head-h : 88px; // 头部区域高度设置
+  $sidebar-w : 250px; // 侧导航区域宽度设置
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  // ! 这里设置这个属性 - 是在解决 body子元素设置了 margin-top 上边距, 但是这个body小兵不听话,
+  // ! 他看到nav父元素没有任何文本内容 | 边框 | padding 啥的，他就想钻空子钻漏洞, 把上边距移给了父元素,
+  // ! 最后结果是nav父元素获得了上边距, body子元素上边距无了 - 失效
+  overflow: hidden;
+  // 头部(header)布局样式
+  &__header {
+    width: 100%;
+    height: $head-h;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    box-shadow: inset 0 0px 10px $m9-menu-header-shadowClr;
+    @mixin head-img-basestyle {
+      width: calc($head-h / 2);
+      height: calc($head-h / 2);
+      border-radius: 50%;
+    }
+    &-left {
+      flex: 3;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      &__logo {
+        @include head-img-basestyle();
+        margin-right: 5px;
+      }
+      &__text {
+        color: $m9-element-fontClr;
+        font-size: 16px;
+        font-family: fantasy;
+        text-decoration: underline;
+      }
+    }
+    &-mid {
+      flex: 8;
+      display: flex;
+      justify-content: center;
+      border-left: solid 2px $m9-inner-element-borderSideClr;
+      border-right: solid 2px $m9-inner-element-borderSideClr;
+    }
+    &-right {
+      flex: 3;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      &__avatar {
+        @include head-img-basestyle();
+        cursor: pointer;
+        margin-left: 5px;
+        &-modal {
+          padding: 4px;
+          color: #ce8600;
+          border-radius: 4px;
+        }
+      }
+    }
+  }
+  // 内容(body)区布局样式
+  &__body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - $sidebar-w);
+    height: calc(100% - $head-h - 20px);
+    overflow: scroll;
+    padding: 1rem;
+    margin-top: $head-h;
+    margin-left: $sidebar-w;
+    color: $m9-element-fontClr;
+  }
+  // 尾部(footer)布局样式
+  &__footer {
+    text-align: center;
+    color: $m9-element-fontClr;
+    position: absolute;
+    bottom: 0;
+    width: calc(100% - $sidebar-w);
+    margin-left: $sidebar-w;
+  }
+  // 侧导航(sidebar)布局样式
+  &__sidebar {
+    width: $sidebar-w;
+    height: 100%;
+    padding: 8px 6px;
+    border-right: solid 3px orange;
+    background-color: $m9-element-bgClr;
+    // 侧导航内的大标题样式
+    &-title {
+      color: $m9-element-fontClr;
+      text-align: center;
+      font-weight: 700;
+      font-size: 24px;
+    }
+    // 侧导航内的菜单样式
+    &-menus {
+      display: flex;
+      flex-direction: column;
+      margin: 10px auto;
+      &__item {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        color: $m9-element-fontClr;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 300ms;
+        &-icon {
+          width: 1rem;
+          height: 1rem;
+        }
+        &-icon, &-text {
+          margin: 3px 4px;
+        }
+        .heart-switcher {
+          flex-grow: 1;
+          text-align: right;
+        }
+        &.is-selected, &:hover {
+          color: $m9-inner-element-borderSideClr;
+          background-color: $m9-inner-element-bgClr;
+        }
+      }
+
+      &-enter-active, &-leave-active {
+        transition: 'all 1000ms cubic-bezier(0, 0, 0.7, 1)';
+      }
+      &-enter-active {
+        animation: miku-nav-menus-anime-enter 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      &-leave-active {
+        animation: miku-nav-menus-anime-exit 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    }
+  }
+}
+
+@keyframes miku-nav-menus-anime-enter {
+  0% {
+    transform: translateX(100%);
+    max-height: 0;
+  }
+  100% {
+    transform: translateX(0);
+    max-height: 1000px;
+  }
+}
+@keyframes miku-nav-menus-anime-exit {
+  0% {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}

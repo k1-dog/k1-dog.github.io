@@ -1,0 +1,16 @@
+.m9-drag-helper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 99999;
+  border: 1px solid #bb73ff;
+  border-radius: 4px;
+  &.y {
+    width: 1px;
+    height: 100vh;
+  }
+  &.x {
+    width: 100%;
+    height: 1px;
+  }
+}

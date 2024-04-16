@@ -1,0 +1,40 @@
+{
+  "name": "@kego/m9-k1-ui",
+  "version": "0.0.4",
+  "main": "m9-k1-vue.es.ts",
+  "module": "m9-k1-vue.es.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "*.css",
+    "*.d.ts",
+    "*.mjs",
+    "*.js",
+    "*.ts"
+  ],
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k1-dog/m9-k1"
+  },
+  "keywords": [
+    "vue",
+    "ui",
+    "miku-mirai-k1"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "author": "傲雪凌寒小七罪",
+  "license": "MIT",
+  "description": "a vue module of miku-mirai ui corresponded to m9-k1-react version",
+  "typings": "m9-k1.d.ts",
+  "peerDependencies": {
+    "vue": "^3.2.25"
+  },
+  "dependencies": {
+    "classnames": "^2.3.1",
+    "dayjs": "^1.11.5"
+  }
+}

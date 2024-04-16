@@ -1,0 +1,148 @@
+$miku-switcher-preCls : "#{$m9-preCls}-switcher";
+
+.#{$miku-switcher-preCls} + .#{$miku-switcher-preCls} { margin-left: 10px; }
+
+.#{$miku-switcher-preCls} {
+  position: relative;
+  cursor: pointer;
+  color: $m9-switcher-fontClr;
+  padding: 0.1em;
+  border: 2px solid;
+  border-radius: 30px;
+  display: inline-flex;
+
+  &--loading {}
+
+  &--actived {
+    // ! 激活开关时 - 左元素渐渐隐藏 + 平移消失
+    .#{$miku-switcher-preCls}__left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    // ! 激活开关时 - 右元素渐渐出现 + 平移回来
+    .#{$miku-switcher-preCls}__right {
+      transform: translateX(-100%);
+      opacity: 1;
+    }
+    // ! 激活开关时 - 中间切换框元素 - 背景高亮
+    .#{$miku-switcher-preCls}__inner {
+      background-color: $m9-switcher-active-bgClr;
+    }
+    border-color: $m9-switcher-active-borderClr;
+    box-shadow: 0 0 1px 1px $m9-switcher-active-borderClr;
+  }
+  &--unactived {
+    box-shadow: unset;
+    border-color: $m9-switcher-borderClr;
+    // ! 熄灭开关时 - 左元素渐渐出现 + 平移回来
+    .#{$miku-switcher-preCls}__left {
+      transform: translateX(100%);
+      opacity: 1;
+    }
+    // ! 熄灭开关时 - 右元素渐渐隐藏 + 平移消失
+    .#{$miku-switcher-preCls}__right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    // ! 熄灭开关时 - 中间切换框元素 - 背景灰沉
+    .#{$miku-switcher-preCls}__inner {
+      background-color: $m9-switcher-bgClr;
+      &::before {
+        transform: translateX(0);
+      }
+    }
+  }
+
+  &--disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  &--size {
+    $sizeRatio: 2.5; // calc(5 / 2);
+    $large-width: 80px;
+    $mid-width: 60px;
+    $small-width: 50px;
+
+    &-large {
+      font-size: 16px;
+
+      .#{$miku-switcher-preCls}__inner {
+        width: $large-width;
+        height: calc($large-width / $sizeRatio);
+        &::before {
+          width: calc($large-width / $sizeRatio / 1.5);
+          height: calc($large-width / $sizeRatio / 1.5);
+        }
+      }
+      &.#{$miku-switcher-preCls}--actived > .#{$miku-switcher-preCls}__inner::before{
+        transform: translateX(calc($large-width - 100% - 0.5em));
+      }
+    }
+    &-medium {
+      font-size: 14px;
+
+      .#{$miku-switcher-preCls}__inner {
+        width: $mid-width;
+        height: calc($mid-width / $sizeRatio);
+        &::before {
+          width: calc($mid-width / $sizeRatio / 1.5);
+          height: calc($mid-width / $sizeRatio / 1.5);
+        }
+      }
+      &.#{$miku-switcher-preCls}--actived .#{$miku-switcher-preCls}__inner::before{
+        transform: translateX(calc($mid-width - 100% - 0.5em));
+      }
+    }
+    &-small {
+      font-size: 12px;
+
+      .#{$miku-switcher-preCls}__inner {
+        width: $small-width;
+        height: calc($small-width / $sizeRatio);
+        &::before {
+          width: calc($small-width / $sizeRatio / 1.5);
+          height: calc($small-width / $sizeRatio / 1.5);
+        }
+      }
+      &.#{$miku-switcher-preCls}--actived .#{$miku-switcher-preCls}__inner::before{
+        transform: translateX(calc($small-width - 100% - 0.5em));
+      }
+    }
+  }
+
+  &__left, &__right {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s;
+  }
+  &__left {
+    left: 0;
+  }
+  &__right {
+    right: 0;
+  }
+  &__inner {
+    position: relative;
+    display: block;
+    border-radius: 20px;
+    border: 2px solid;
+    transition: background-color 0.5s;
+
+    &::before {
+      content: "";
+      display: inline-block;
+      border-radius: 50%;
+      background: #ffffff;
+      position: absolute;
+      top: 0.2em;
+      left: 0.2em;
+      transition: transform 0.5s;
+    }
+  }
+}

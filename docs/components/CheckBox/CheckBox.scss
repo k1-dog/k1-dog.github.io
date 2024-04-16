@@ -1,0 +1,124 @@
+$miku-check-preCls: '#{$m9-preCls}-check';
+$checkBoxSize: 18px;
+
+@mixin checkBoxSize($size: 18px) {
+  width: $size;
+  height: $size;
+}
+
+.#{$miku-check-preCls} + .#{$miku-check-preCls} {
+  margin-left: 10px;
+}
+
+.#{$miku-check-preCls} {
+  /* 外部结构样式 */
+  & + & {
+    margin: 10px;
+  }
+  /* 内部结构样式 */
+  display: block;
+  padding: 0.3em 0.5em;
+  border: 1px solid $m9-element-borderClr;
+  background: $m9-element-bgClr;
+  border-radius: 4px;
+
+  font-size: $miku-font-small * 1.1;
+
+  /* 特殊样式 */
+  transition: all 0.22s;
+
+  &__item {
+    & + & {
+      margin-left: 10px;
+    }
+
+    transition: all 0.22s;
+    display: inline-flex;
+    align-items: center;
+    
+    color: $m9-element-fontClr;
+    
+    user-select: none;
+
+    /* 单选框的小方格样式 */
+    &-checkbox {
+      display: flex;
+      &:hover {
+        &__input {
+          background: #ffffff;
+          color: var(--purple);
+          border: 1px solid $m9-element-active-borderClr;
+        }
+      }
+      position: relative;
+      // 右外边距 - 与内容区有点间隔
+      // margin-right: 0.4em;
+      // 内边距设置 - 这个是纯美化效果
+      padding: 0.2rem;
+      border: 1px solid $m9-element-borderClr;
+      border-radius: 4px;
+      box-shadow: 0 0 2px 1px inset gray;
+      &__inner {
+        display: none;
+      }
+      &__input {
+        cursor: pointer;
+        background: #e5e2ff;
+        @include m9-flex-center();
+        @include checkBoxSize($checkBoxSize);
+      }
+      &__label {
+        cursor: pointer;
+        position: absolute;
+        font-size: 0.6rem;
+        color: #92cbff;
+        left: 50%;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translate(-50%, -50%);
+
+        transition: all 200ms;
+      }
+
+      &--checked {
+        border: 1px solid #c595ff;
+        box-shadow: 0 0 2px 2px #d3aaff;
+        // &::after {
+        //   content: '√';
+        //   @include m9-position-center();
+        //   border-radius: 100%;
+        //   background: #ffffff;
+        //   @include checkBoxSize($checkBoxSize * 0.3);
+        // }
+
+        // 选中复选框时 - 背景变成深紫
+        .#{$miku-check-preCls}__item-checkbox__input {
+          background: #ae22ff;
+        }
+
+        // 选中复选框时 - label关联文本，平滑左上移动过渡动画
+        .#{$miku-check-preCls}__item-checkbox__label {
+          top: 0;
+          left: 0;
+          width: 12px;
+          height: 12px;
+        }
+      }
+      
+      &--disabled {
+        pointer-events: none;
+        .#{$miku-check-preCls}__item-checkbox__input {
+          //  禁用复选框时 - 背景变成深灰
+          background: $m9-element-disabled-bgClr;
+        }
+      }
+    }
+
+    &-ctt {
+      float: right;
+      cursor: pointer;
+      margin-left: 0.4em;
+    }
+  }
+}

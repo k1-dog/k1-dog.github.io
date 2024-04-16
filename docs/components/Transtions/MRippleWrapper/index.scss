@@ -1,0 +1,64 @@
+$ripple-12color: (
+  on: linear-gradient(0deg, #fbd0ff44 0%, #79797944 50%, #efc6ff44 100%),
+  off: linear-gradient(0deg, #80808033 0%, #00000033 50%, #80808033 100%)
+);
+
+.miku-ripple-root {
+  position: relative;
+  // overflow: hidden;
+  display: inline-block;
+}
+
+.miku-ripple-baseStyle {
+  left: 0;
+  top: 0;
+  display: block;
+  border-radius: 50%;
+  position: absolute;
+  pointer-events: none;
+}
+
+.miku-ripple-enter-active,
+.miku-ripple-leave-active {
+  // @extend .miku-ripple-baseStyle;
+  background-image: map-get($map: $ripple-12color, $key: on);
+  transition: 'all 1000ms cubic-bezier(0, 0, 0.7, 1)';
+}
+.miku-ripple-enter-active {
+  animation: miku-ripple-anime-enter 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.miku-ripple-leave-active {
+  animation: miku-ripple-anime-exit 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+// 元素进入 ｜ 结束 之前，过渡的效果
+// .miku-ripple-enter-from {
+//   transform: scale(0.4);
+// }
+// .miku-ripple-leave-to {
+//   transform: scale(0.4);
+// }
+// .miku-ripple-leave-from {
+//   transform: scale(1);
+// }
+// .miku-ripple-enter-to {
+//   transform: scale(1);
+// }
+
+@keyframes miku-ripple-anime-enter {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes miku-ripple-anime-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}

@@ -1,0 +1,26 @@
+.m9 {
+  position: relative;
+  display: block;
+}
+.m9-tooltip {
+  position: absolute;
+  padding: 0.5rem;
+  display: inline-block;
+  background-color: #00000099;
+  border-radius: 4px;
+  color: antiquewhite;
+
+  transition: all 0.33s ease-in-out;
+
+  &::after {
+    @include m9-trangle($type: "down", $size: 10px);
+    left: calc(50% - (10px / 2));
+  }
+  &__title {
+    font-size: 1rem;
+  }
+
+  &__content {
+    font-size: 0.8rem;
+  }
+}

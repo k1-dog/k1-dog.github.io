@@ -1,0 +1,209 @@
+$miku-date-preCls: "#{$m9-preCls}-date";
+
+$miku-date-size-base: 1rem;
+
+$miku-date-emoji-size: 1.1 * $miku-date-size-base;
+$miku-date-width: $miku-date-size-base * 30;
+$miku-date-height: $miku-date-size-base * 12;
+
+/**
+ * 日期头部 -- 上边界线 ___ 三只仓鼠样式 -- 生成器
+ */
+@mixin date-top-line-style($mouse123-size: $miku-date-emoji-size) {
+  $mouse-emoj: 🐹;
+  // height: 1px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #d1d1d1;
+  %ABC_mouseEmoji_baseCls {
+    // content: "#{$mouse-emoj}";
+    font-size: $mouse123-size;
+  }
+  %AB_mouseEmoji_cls {
+    @extend %ABC_mouseEmoji_baseCls !optional;
+    position: absolute;
+  }
+  .mouse-123 {
+    @extend %ABC_mouseEmoji_baseCls !optional;
+    position: relative;
+    margin: 0 50%;
+    transform: translate(-10%, -1rem);
+    // border-bottom: 1px solid #d1d1d1; 由于-margin: 0 50% 导致该属性失效, 有空好好研究一下
+    &::before {
+      // @extend .AB-mouseEmoji-cls;
+      content: "#{$mouse-emoj}";
+      transform: translateX(-100%);
+      position: absolute;
+    }
+    &::after {
+      // @extend %AB_mouseEmoji_cls !optional;
+      content: "#{$mouse-emoj}";
+      transform: translateX(100%);
+      position: absolute;
+    }
+  }
+}
+
+/**
+ * 日期头部 -- 显示框 ___ 样式 -- 生成器
+ */
+@mixin head-view-wrap-style() {
+  $head-view-middle-padding: $miku-date-size-base * 0.5;
+  overflow: hidden;
+  &-left { // 左半部分
+    float: left;
+  }
+  &-middle { // 中心部分
+    text-align: center;
+    padding: 0 $head-view-middle-padding;
+  }
+  &-right { // 右半部分
+    float: right;
+  }
+}
+
+/**
+ * 日期主体 <-- -标题行- --> 左边缘 | 右边缘 颜文字图案样式
+ */
+@mixin body-date-TitleEmoji-style($direction: 'lt') {
+  $title-emoji-trans: $miku-date-size-base * 0.25;
+  flex: 1;
+  text-align: center;
+  @if ($direction == 'lt') {
+    content: "🐇"; transform: translateX(-$title-emoji-trans);
+  }
+  @else if ($direction == 'rt') {
+    content: "🦄"; transform: translateX($title-emoji-trans);
+  }
+}
+
+/**
+ * 日期尾部 -- 下边界线 ___ 三只 Animate 样式 -- 生成器
+ */
+@function date-bot-line-style($Anime: 'tiger', $parent-width: $miku-date-width) {
+  $anime-dixPx: $parent-width * 0.35;
+  $base-date-bot-map: (
+    height: 1px,
+    width: 100%,
+    border-radius: 4px,
+    border: 1px solid #d1d1d1
+  );
+  
+  @if ($Anime == 'tiger') {
+    $tiger-date-bot-map: map-merge($base-date-bot-map, (
+      content: "🐱",
+      transform: translateX(-$anime-dixPx)
+    ));
+    @return $tiger-date-bot-map;
+  } @else if ($Anime == 'cat') {
+    $cat-date-bot-map: map-merge($base-date-bot-map, (
+      content: "🐈",
+      transform: translate(0)
+    ));
+    @return $cat-date-bot-map;
+  } @if ($Anime == 'dog') {
+    $dog-date-bot-map: map-merge($base-date-bot-map, (
+      content: "🐕",
+      transform: translateX($anime-dixPx)
+    ));
+    @return $dog-date-bot-map;
+  }
+}
+
+.#{$miku-date-preCls} {
+  width: $miku-date-width;
+  color: $m9-element-fontClr;
+  background-color: $m9-element-bgClr;
+  border-radius: 7px;
+  box-shadow: 0 0 12px $m9-element-active-bgClr;
+  // height: $miku-date-height;
+  /** head - style */
+  $head-view-padding: $miku-date-size-base * 1;
+  &-head {
+    padding: 0 $head-view-padding;
+    /** top_Line - style */
+    @include date-top-line-style(); // 日期头部 -- 上边的三只仓鼠 边界线
+    &__view { // 日期头部 -- 中心 日期显示框
+      @include head-view-wrap-style();
+    }
+  }
+  /** body - style */
+  $body-view-padding: $miku-date-size-base * 0.4 $miku-date-size-base * 0.5;
+  &-body {
+    padding: $body-view-padding;
+    &__date-row {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between; // 紧贴 -body容器- 两侧布局
+      &:nth-child(1)::before {
+        @include body-date-TitleEmoji-style('lt');
+      }
+      &:first-child::after {
+        @include body-date-TitleEmoji-style('rt');
+      }
+      &:not(:first-child) {
+        width: calc(100% - 4.5rem);
+        margin: 0 50%;
+        transform: translateX(-50%);
+      }
+      // 经典 -flex- 矩阵布局中, 最后一行元素左对齐的处理方案 -> 向末尾添加一个空伪元素占位
+      &:last-child::after {
+        content: "📆";
+        display: inline-block;
+        position: absolute;
+        right: -2.5rem;
+        text-align: right;
+      }
+    }
+    &__date-col {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      margin: 3px 15px;
+      transition: background-color 0.479s ease;
+      opacity: .999;
+      border-radius: 6px;
+      &.selected {
+        opacity: 1;
+        background-color: $m9-element-active-bgClr;
+        border: 1px solid $button-pure-active-borderClr;
+        border-radius: 100%;
+        color: $button-danger-active-borderClr;
+      }
+      &.disabled {
+        cursor: not-allowed;
+        background-color: $m9-element-disabled-bgClr;
+        color: $m9-element-fontClr;
+        pointer-events: none;
+      }
+      &:hover {
+        opacity: 1;
+        color: $m9-element-bgClr;
+        background-color: $button-pure-active-bgClr;
+      }
+    }
+    &__date-head {
+      font-size: 12px;
+      background-color: $m9-inner-element-bgClr;
+      user-select: none;
+      pointer-events: none;
+    }
+  }
+  /** foot - style */
+  &-foot {
+    @each $k, $v in date-bot-line-style('cat') {
+      $k: $v;
+    }
+    &::before {
+      @each $k, $v in date-bot-line-style('tiger') {
+        $k: $v;
+      }
+    }
+    &::after {
+      @each $k, $v in date-bot-line-style('dog') {
+        $k: $v;
+      }
+    }
+  }
+}

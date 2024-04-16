@@ -1,0 +1,31 @@
+.m9-dragger {
+  position: absolute;
+  z-index: 10;
+  background-color: transparent;
+  border-radius: 4px;
+  &.right, &.left {
+    cursor: ew-resize;
+    top: 0;
+    width: 5px;
+    height: 100%;
+  }
+  &.right {
+    right: 0;
+  }
+  &.left {
+    left: 0;
+  }
+
+  &.top, &.bottom {
+    cursor: ns-resize;
+    left: 0;
+    height: 5px;
+    width: 100%;
+  }
+  &.top {
+    top: 0;
+  }
+  &.bottom {
+    bottom: 0;
+  }
+}
