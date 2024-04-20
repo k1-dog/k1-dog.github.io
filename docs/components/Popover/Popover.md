@@ -1,7 +1,6 @@
 ## 气泡框
 
 **示例**
-
 <m9-popover position="top">
   <m9-button type="pure">上方气泡</m9-button>
   <template #content><span>test popover position</span></template>
@@ -50,12 +49,3 @@
 | 事件名称           | 说明           | 参数  |
 | -------------     |:-------------:| -----:|
 | changePop             | 气泡开关事件    | (isPop: boolean) => void |
-
-<script setup>
-  import { ref } from 'vue'
-  import M9Popover from './Popover'
-  import M9Button from '../Button/Button'
-</script>
-<style lang="scss">
-  /* @import './Popover.scss'; */
-</style>

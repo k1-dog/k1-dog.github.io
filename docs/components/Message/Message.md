@@ -29,12 +29,10 @@
 | close   | 消息关闭点击事件 | () => void |
 
 <script setup>
-  import M9MsgX from './controller'
-  import M9Button from '../Button/Button'
-  
+  import { getCurrentInstance } from 'vue'
+  const { proxy } = getCurrentInstance()
+  const $M9MsgX = proxy.$M9MsgX
   const onMessage = (msgType) => {
-    M9MsgX[msgType]({ text: '！侦测到在途的巨变打击', life: 0 })
+    $M9MsgX[msgType]({ text: '！侦测到在途的巨变打击', life: 0 })
   }
 </script>
-<style lang="scss">
-</style>

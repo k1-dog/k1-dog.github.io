@@ -1,7 +1,6 @@
 ## 导航布局容器组件
 
 **示例**
-
 <m9-navigation :menus="menus">
   <div>美九的M9Charts图表展示库</div>
 </m9-navigation>
@@ -28,9 +27,6 @@
 | ---------------- |:-------------:| -----:|
 | onClickMenuItem  | 点击菜单项事件 | (m9MenuItem: MNavMenuItem) => void |
 <script setup>
-  import { ref } from 'vue'
-  import M9Navigation from './Navigation'
-
   const menus = ([
     {
       key: 'a',
@@ -62,7 +58,3 @@
     { key: 'g', label: '菜单-04' }
   ])
 </script>
-  
-<style lang="scss">
-  /* @import './Navigation.scss'; */
-</style>

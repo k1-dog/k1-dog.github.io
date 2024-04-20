@@ -28,4 +28,10 @@ declare module '*.vue' {
 declare type MVElementR = ComponentPublicInstance | Element | null
 
 declare type MReturnParam<F0> = F0 extends (args: infer P0) => any ? P0 : unknown
+
+// declare module '@vue/runtime-core' {
+//   interface ComponentCustomProperties {
+//     $M9DragHelper: any;
+//   }
+// }
 // declare module '@vitejs/plugin-vue-jsx'

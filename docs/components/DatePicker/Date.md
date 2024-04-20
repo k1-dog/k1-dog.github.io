@@ -1,7 +1,6 @@
 ## 日期选择器
 
 **示例**
-
 <m9-date-picker mode="Day" @datePick="onDateSelect" />
 
 **代码**
@@ -27,11 +26,7 @@
 | datePick          | 日期选择事件   | () => void |
 
 <script setup>
-  import { ref } from 'vue'
-  import M9DatePicker from './index'
-
   const onDateSelect = (D) => {
     console.log('🚀 ~ onDateSelect ', D)
   }
 </script>
-<style lang="scss"></style>

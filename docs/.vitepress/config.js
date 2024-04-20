@@ -56,7 +56,7 @@ module.exports = {
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: '@import "/components/style.scss";' // !~~靠 -少个分号都不行 看来这是配置的 scss 语法命令, 较严格
+          // additionalData: '@import "/packages/style.scss";' // !~~靠 -少个分号都不行 看来这是配置的 scss 语法命令, 较严格
         }
       }
     },

@@ -2,13 +2,13 @@
 
 **示例**
 
-<div :ref="m9"></div>
+<div ref="m9"></div>
 
 **代码**
 
 ```html
 <template>
-  <div :ref="m9"></div>
+  <div ref="m9"></div>
 </template>
 ```
 
@@ -21,8 +21,13 @@
 
 | 事件名称 | 说明    | 参数                    |
 | --------|:-------:| ----------------------:|
-
 <script setup>
-  import m9 from './m9._z0_'
+  import { getCurrentInstance, onMounted, ref } from 'vue'
+  const { proxy } = getCurrentInstance()
+  const $M9K1 = proxy.$K1
+
+  const m9 = ref()
+  onMounted(() => {
+    $M9K1(m9.value)
+  })
 </script>
-<style lang="scss"></style>

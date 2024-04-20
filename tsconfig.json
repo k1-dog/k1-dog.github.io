@@ -1,11 +1,17 @@
 {
+  "noImplicitInitialize": true,
   "allowImportingTsExtensions": true,
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ES2015",
     "module": "ESNext",
-    "rootDir": ".",
+    "rootDir": "./docs",
     "outDir": "./m9-d-ts",
+    "allowJs": false,
+    "declaration": true,
+    "declarationDir": "./m9-d-ts",
+    "emitDeclarationOnly": true, // 只生成声明文件，而不会生成js文件
+    "strictPropertyInitialization": false,
     // "paths": { "@/*": ["src/*"] },
     "types": ["node", "vite/client"], // "module"
     "jsx": "preserve",
@@ -13,15 +19,12 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "Node",
-    "noEmit": true,
     "noImplicitAny": false, // 是否在表达式和声明上有隐含的any类型时报错
     "lib": ["esnext", "dom"]
   },
   "include": [
-    "docs",
+    "docs/packages",
     "./miku-types/**/*.d.ts",
-    // "./docs/components/**/*.tsx",
-    // "./docs/components/**/*.vue",
   ],
   "exclude": ["node_modules"]
 }

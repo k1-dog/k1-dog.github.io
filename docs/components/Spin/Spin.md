@@ -23,11 +23,3 @@
 | 属性     | 说明       | 类型    | 默认值  |
 | ---------|:----------:| -------:| ------:|
 | spinning | 加载开关   | boolean |  false |
-
-<script setup>
-  import { ref } from 'vue'
-  import M9Spin from './Spin'
-  import M9Button from '../Button/Button'
-</script>
-<style lang='scss'>
-</style>

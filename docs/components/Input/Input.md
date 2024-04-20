@@ -31,7 +31,6 @@
 
 <script setup>
   import { ref } from 'vue'
-  import M9Input from './Input'
 
   const value = ref('')
 
@@ -39,6 +38,3 @@
     console.log('🚀 ~ onBlur2024: ', be)
   }
 </script>
-<style lang="scss">
-  /* @import './Input.scss'; */
-</style>

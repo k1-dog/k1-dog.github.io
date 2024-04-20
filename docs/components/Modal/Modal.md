@@ -1,7 +1,6 @@
 ## 模态框
 
 **示例**
-
 <m9-modal title="美九未来 - 上方抽屉" placement="top" v-model="showTop">
   <div>测试~ 上方 - 抽屉类型 弹框</div>
 </m9-modal>
@@ -73,8 +72,6 @@
 
 <script setup>
   import { ref } from 'vue'
-  import M9Modal from './Modal'
-  import M9Button from '../Button/Button'
 
   const show = ref(false)
   const onOpenModal = () => {
@@ -101,6 +98,3 @@
     showBottom.value = true
   }
 </script>
-<style lang="scss">
-  /* @import './Input.scss'; */
-</style>

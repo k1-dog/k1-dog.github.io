@@ -32,14 +32,8 @@
 | click             | 按钮点击事件   | () => void |
 
 <script setup>
-  import { ref } from 'vue'
-  import M9Button from './Button'
-
   const onClick2024 = (e) => {
     // e.stopPropagation()
     console.log('🚀 ~ onClick2024: ', e, onClick2024)
   }
 </script>
-<style lang="scss">
-  /* @import './Button.scss'; */
-</style>

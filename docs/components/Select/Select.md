@@ -54,7 +54,6 @@
 | select  | 选择事件 | (_msobj_: MSelectObject) => void |
 
 <script setup>
-  import M9Select from './Select'
   const options = [
     { label: '目水悠之', value: 'mu-shui' },
     { label: '孔雀王族三公主-傲熙弦', value: 'a0-xi-xian' },
@@ -69,6 +68,3 @@
     })
   ]
 </script>
-<style lang="scss">
-  /* @import './Input.scss'; */
-</style>

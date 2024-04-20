@@ -51,13 +51,7 @@
 | change             | 切换开关事件    | (value: boolean) => void |
 
 <script setup>
-  import { ref } from 'vue'
-  import M9Switch from './Switch'
-
   const onChange2024 = (open) => {
     console.log('🚀 ~ onChange2024: ', open)
   }
 </script>
-<style lang="scss">
-  /* @import './Switch.scss'; */
-</style>

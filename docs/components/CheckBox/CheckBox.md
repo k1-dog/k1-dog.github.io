@@ -60,17 +60,9 @@
 | change  | 选值变化事件 | (key: string) => void |
 
 <script setup>
-  import { ref } from 'vue'
-  import M9CheckBox from './CheckBox'
-
-  const M9CheckboxItem = M9CheckBox.Item
-
   const CheckBoxValues_1 = [
       { price: '20', desc: 'check1', date: '1.0.0.1' },
       { price: '10', desc: 'check2', date: '2.2.2.1', disabled: true },
       { price: '30', desc: 'check3', date: '3.3.3.1' }
     ]
 </script>
-<style lang="scss">
-  /* @import './Input.scss'; */
-</style>

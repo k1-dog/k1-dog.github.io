@@ -24,8 +24,3 @@
 | -------------     |:---------------:| ---------:|
 | change            | 上传变化回调事件 | () => void |
 
-<script setup>
-  import { ref } from 'vue'
-  import M9Filer from './File'
-</script>
-<style lang="scss"></style>

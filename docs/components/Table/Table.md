@@ -27,8 +27,6 @@
 | onChangePagi      | 分页点击事件    | (pagi: PagiInfo) => void |
 
 <script setup>
-  import { ref } from 'vue'
-  import M9Table from './Table'
   // ? 测试千万级树表结构数据用例
   const prefix = 'miku'
   const MTHColumns = Array.from({ length: 10 }, (_, _i) => {
@@ -70,6 +68,3 @@
     }, {})
   })
 </script>
-<style lang="scss">
-  /* @import './Table.scss'; */
-</style>

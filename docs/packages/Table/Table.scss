@@ -1,0 +1,133 @@
+$miku-table-preCls : "#{$m9-preCls}-table";
+
+$miku-table-cell-size : 1rem;
+
+.#{$miku-table-preCls} + .#{$miku-table-preCls} { margin-left: 10px; }
+
+// ! 至关重要的可视窗口
+// ! 实现虚拟滚动
+// ! 实现表格的单元格吸附
+.#{$miku-table-preCls}--viewport {
+  position: relative;
+  overflow: auto;
+}
+
+.#{$miku-table-preCls} {
+    /* 外部结构样式 */
+    
+    /* 内部结构样式 */
+    border: 1px solid $m9-element-borderClr;
+    border-radius: 4px;
+
+    color: $m9-element-fontClr;
+    line-height: 1rem;
+    font-size: $miku-table-cell-size;
+
+    /* 特殊样式 */
+    transition: all .22s;
+    overflow: visible !important;
+
+    &__head {
+      // ! 表头吸顶
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      // 这里是因为 表格body元素被 虚拟滚动容器包裹了, 虚滚容器设置了滚动条, 所以body部分宽度会有一个 17px 的纵向滚动条
+      // 然后为了宽度和虚滚容器对齐, 表格head把这个17px也填充进去了, 所以咱们最后 把表头这个17px 动态减掉, 才是真正的表头表身对齐
+      // width: calc(100% - 17px);
+      th {
+        height: 100%;
+        
+        user-select: none;
+        font-weight: bold;
+        color: $m9-table-thead-fontClr;
+      }
+    }
+
+    &__body {
+      // ! 这里发现 - 表身的body元素, 被虚拟滚动时, 越向下滚动, 滚动距离会意外的被拉长
+      // ! 将 display设置为block, 并在滚动时实时填充上下内边距padding, 可以消除此影响
+      // ! 但是 不断更改 padding 内边距值, 显然会不断重排浏览器布局, 想办法用 transform属性 进行GPU提速
+      display: block;
+      opacity: .999;
+      &--animation {
+        &-enter-active, &-leave-active {
+          transition: 'all 1000ms cubic-bezier(0, 0, 0.7, 1)';
+        }
+        &-enter-active {
+          animation: miku-table-expand-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        &-leave-active {
+          animation: miku-table-expand-exit 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      }
+    }
+
+  tr {
+    // 这里发现, 不给tr设置flex布局, 就没法固定他的高度值
+    display: flex;
+
+    .#{$miku-table-preCls}__cell {
+      border: none !important;
+      border-bottom: 1px solid $m9-table-trow-divideClr !important;
+      padding: 0.75rem 1rem;
+      background-color: $m9-table-trow-bgClr;
+      display: flex;
+      align-items: center;
+      // 文本太长会自动换行, 影响定义的每行固定高度, 影响虚拟滚动计算
+      @include m9-text-overflow();
+      &--fixed {
+        position: sticky;
+        z-index: 2;
+      }
+      &--filter {
+        cursor: pointer;
+        padding: 0 0.5rem;
+      }
+      &--sort {
+        cursor: pointer;
+        padding: 0 0.5rem;
+      }
+    }
+  }
+}
+@mixin fixed-cell-shadow-color () {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  z-index: -1;
+  box-shadow: 0 0 6px 2px #a9a9ff;
+}
+.#{$miku-table-preCls}__head tr .#{$miku-table-preCls}__cell-dragger--fixed--left .#{$miku-table-preCls}__cell:last-child::before {
+  // @include fixed-cell-shadow-color ();
+}
+.#{$miku-table-preCls}__cell--fixed--left:last-child::before {
+  // @include fixed-cell-shadow-color ();
+}
+.#{$miku-table-preCls}__cell--fixed--right:first-child::before {
+  // @include fixed-cell-shadow-color ();
+}
+
+@keyframes miku-table-expand-enter {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+@keyframes miku-table-expand-exit {
+  0% {
+    opacity: 1;
+    max-height: 1000px;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+  }
+}
