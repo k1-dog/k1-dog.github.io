@@ -31,6 +31,10 @@ module.exports = {
       { text: '企鹅 QQ', link: '865605829@qq.com' },
     ],
     sidebar: [
+      {
+        text: 'K1风格 组件库简介',
+        link: '/components/k1-boot.md'
+      },
       ...createButtonMenus(),
       ...createInputMenus(),
       ...createSwitchMenus(),

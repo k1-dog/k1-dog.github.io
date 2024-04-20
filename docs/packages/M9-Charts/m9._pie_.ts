@@ -4,6 +4,7 @@ import { H_ClearArcArea, U$Push_Pop_Ctx2D } from './helper.canvas'
 import { H_StrongMethodsInThisClass, H_M9Whisper } from './helper.core'
 import { M9Chart as M9T, M9Interactor as InteractorClassT, M9DatasetT } from './m9.d'
 import { PI, _2PI, _2_3PI, HALF_PI, _360, H_pow, H_floor, H_ceil, H_sqrt, H_abs, H_sin } from './helper.math'
+import { isM9Number } from '../M9-Utils/helper'
 
 
 type PointAtCenterT = { x0: number; y0: number }
@@ -27,8 +28,7 @@ class Pie extends M9Element {
   }
 
   constructor ($PieConfig) {
-    const { width: w, height: h } = $PieConfig
-    super({ w, h })
+    super({ w: $PieConfig.width, h: $PieConfig.height })
 
     this.initConfig($PieConfig)
 
@@ -78,7 +78,6 @@ class Pie extends M9Element {
           const { angle: nowAngle, rotationAngle: nowRotationAngle } = $CurrentState
           const { radius, angle1, rotationAngle } = $interaction
           const _PiePath = { radius, startAngle: angle1, endAngle: nowAngle, color: Pie.pieColors[index % Pie.pieColors.length], rotationAngle: nowRotationAngle }
-          // '#fdcea0', '#fddee6', '#d9f0f2', '#d5eafb', '#e9deff', '#f2f3f5'
           Magnification += 0.05
           U$Push_Pop_Ctx2D($M9Chart.ctx, this.draw, _PiePath)
         }
@@ -124,15 +123,15 @@ class Pie extends M9Element {
       // .calc -> 弦长计算公式:: D = 2 * R * sin(A / 2)
       // .calc: 质心(中心)计算公式:: O = 2RC/3L
       //
-      const { label, radius: R, angle2: A, rotationAngle } = $path
-      if (!A || !label || !rotationAngle) return
+      const { label, radius: R, angle2: A, rotationAngle } = ($path as any)
+      if ((!A && !isM9Number(A)) || !label || (!rotationAngle && !isM9Number(rotationAngle))) return
       const D = 2 * R! * H_sin(Pie.U$ConvertAngleToRadian(A / 2)) // * ) 计算弦长.D
       const L = _2PI * R! * A / 360 // * ) 计算弧长.L
       const _O_ = H_ceil((2 * R! * D) / (3 * L)) // * ) 计算质心长度._O_
 
       $ctx.lineWidth = 2
       $ctx.font = '14px _'
-      $ctx.fillStyle = '#ffffff'
+      $ctx.fillStyle = '#3dd68c'
       $ctx.strokeStyle = 'orange'
 
       $ctx.beginPath()
@@ -144,7 +143,7 @@ class Pie extends M9Element {
       // ! 有个关键点儿 - 先把整个画布反向旋转回去, 要不当前画布是已经旋转后的上下文了, 二段会画歪
       // $ctx.rotate(-rotationAngle)
 
-      const secondLineLength = 150 // ? 二段折线长度
+      const secondLineLength = 180 // ? 二段折线长度
       const verticalOffsetBetweenLabelAndLine = 5 // ? 文字与二段折线间的纵向间距距离
       const labelOffsetWidth = $ctx.measureText(label).width
 
@@ -234,8 +233,16 @@ class Pie extends M9Element {
   }
 
   draw ($ctx: CanvasRenderingContext2D, $path: M9PathT) {
-    const { color, radius, startAngle, endAngle, rotationAngle } = $path
-    if (!radius || !color || !rotationAngle || !endAngle) return
+    const { color, radius, startAngle, endAngle, rotationAngle } = ($path as any)
+    if (
+      (!isM9Number(radius) && !radius)
+      ||
+      !color
+      ||
+      (!isM9Number(rotationAngle) && !rotationAngle)
+      ||
+      (!isM9Number(endAngle) && !endAngle)
+    ) return
     const { x0, y0 } = this._pointAtCenter
     const CoordinatePointX = 0
     const CoordinatePointY = 0

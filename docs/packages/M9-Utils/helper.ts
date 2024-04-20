@@ -9,16 +9,16 @@ export const unique: Unique = function <U>(arr: U[]): U[] {
 }
 
 interface isNumber {
-  (x: string | number): boolean
+  (x: any): boolean
 }
 
-export const isMikuNumber: isNumber = (_x_): boolean => {
+export const isM9Number: isNumber = (N) => {
   let reset: number = 0,
     flag: boolean = false
-  if (typeof _x_ === 'string') {
-    reset = Number(_x_)
-  } else if (typeof _x_ === 'number') {
-    reset = _x_
+  if (typeof N === 'string') {
+    reset = Number(N)
+  } else if (typeof N === 'number') {
+    reset = N
   }
   if (!isNaN(reset)) {
     flag = true

@@ -3,8 +3,8 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
 .#{$miku-nav-preCls} {
   $head-h : 88px; // 头部区域高度设置
   $sidebar-w : 250px; // 侧导航区域宽度设置
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   position: relative;
   // ! 这里设置这个属性 - 是在解决 body子元素设置了 margin-top 上边距, 但是这个body小兵不听话,
   // ! 他看到nav父元素没有任何文本内容 | 边框 | padding 啥的，他就想钻空子钻漏洞, 把上边距移给了父元素,
