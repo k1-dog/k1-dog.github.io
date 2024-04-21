@@ -22,7 +22,7 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: resolve(__dirname, 'docs/components/index.ts'),
+      entry: resolve(__dirname, 'docs/packages/index.ts'),
       name: 'm9-k1-vue',
       formats: ["es", "umd"],
       fileName: (format) => `m9-k1-vue.${format}.ts`

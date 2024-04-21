@@ -1,3 +1,5 @@
+// import './style.scss' 打包时把这行注释放开, 打包的内容里会带上 style.css 全部的样式文件
+
 import { App } from 'vue'
 import M9Button from './Button'
 import M9CheckBox from './CheckBox/CheckBox'

@@ -20,7 +20,7 @@
   "author": "傲雪凌寒小七罪",
   "license": "ISC",
   "dependencies": {
-    "@kego/m9-k1-ui": "^0.0.4",
+    "@kego/m9-k1-ui": "^0.0.5",
     "classnames": "^2.3.1",
     "core-js": "^3.6.5",
     "dayjs": "^1.11.5",
