@@ -25,10 +25,7 @@ module.exports = {
       { text: '美九的小窝', link: 'https://miku-space.com/' },
     ],
     socialLinks: [
-      { icon: "github", link: "https://gitee.com/natsum1/miku-mirai.git" },
-      { text: 'Gitee 码云', link: 'https://gitee.com/natsum1/miku-mirai.git' },
-      { text: 'B站', link: 'https://gitee.com/natsum1/miku-mirai.git' },
-      { text: '企鹅 QQ', link: '865605829@qq.com' },
+      { icon: "github", link: "https://github.com/k1-dog/k1-dog.github.io/tree/master" },
     ],
     sidebar: [
       {
