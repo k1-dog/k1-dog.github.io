@@ -1,20 +1,10 @@
 # M9-K1
 
-<nobr>
 ![vue3.x](https://img.shields.io/badge/Tor-7D4698?style=for-the-badge&logo=Tor-Browser&logoColor=white)
-</nobr>
-<nobr>
 ![typescript](https://img.shields.io/badge/Firefox-FF7139?style=for-the-badge&logo=Firefox-Browser&logoColor=white)
-</nobr>
-<nobr>
 ![scss](https://img.shields.io/badge/Binance-FCD535?style=for-the-badge&logo=binance&logoColor=white)
-</nobr>
-<nobr>
 ![K1-UI](https://img.shields.io/badge/Amp-005AF0?style=for-the-badge&logo=amp&logoColor=white)
-</nobr>
-<nobr>
 ![vitepress](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)
-</nobr>
 
 ##
 
