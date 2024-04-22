@@ -1,19 +1,19 @@
 # M9-K1
 
 <nobr>
-![vue3.x](https://img.shields.io/badge/vue3.x-purple)
+![vue3.x]([https://img.shields.io/badge/vue3.x-purple](https://img.shields.io/badge/Tor-7D4698?style=for-the-badge&logo=Tor-Browser&logoColor=white))
 </nobr>
 <nobr>
-![typescript](https://img.shields.io/badge/typescript-red)
+![typescript]([https://img.shields.io/badge/typescript-red](https://img.shields.io/badge/Firefox-FF7139?style=for-the-badge&logo=Firefox-Browser&logoColor=white))
 </nobr>
 <nobr>
-![scss](https://img.shields.io/badge/scss-yellow)
+![scss]([https://img.shields.io/badge/scss-yellow](https://img.shields.io/badge/Binance-FCD535?style=for-the-badge&logo=binance&logoColor=white))
 </nobr>
 <nobr>
-![K1-UI](https://img.shields.io/badge/K1-UI-green)
+![K1-UI]([https://img.shields.io/badge/K1-UI-green](https://img.shields.io/badge/Amp-005AF0?style=for-the-badge&logo=amp&logoColor=white))
 </nobr>
 <nobr>
-![vitepress](https://img.shields.io/badge/vitepress-orange)
+![vitepress]([https://img.shields.io/badge/vitepress-orange](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white))
 </nobr>
 
 ##
@@ -22,11 +22,11 @@ The PC UI Components built on Vue3.x!
 
 Vue3.x 打造的基础通用组件，vitepress搭建文档站点
 
-## Docs Site
+## 📄 Docs Site
 
  - [m9-k1 ui](https://k1-dog.github.io/components/k1-boot.html)
 
-## Usage
+## 📔 Usage
 
 Install m9-k1-ui with npm
 
@@ -52,16 +52,16 @@ main.js 加载注册组件
 
 ```
     
-## Themes
+## 👗 Themes
 
 支持明暗模式双色主题（推荐暗黑模式）
 
-## Features
+## ✨ Features
     1.  单实例 - dragHelper提示线
     2.  性能优化 - 虚拟滚动、防抖节流
     3.  高度集成 - 表单校验能力
     4.  部分可视化图表 - 柱状图、饼状图
     5.  TS - 类型校验
 
-## 风格参考
+## 💎 风格参考
     m9-k1 UI库的启蒙组件库 - PrimeVue（国外）
