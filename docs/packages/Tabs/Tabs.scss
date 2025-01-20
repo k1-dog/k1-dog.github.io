@@ -1,0 +1,106 @@
+$miku-tabs-preCls: "#{$m9-preCls}-tabs";
+
+.#{$miku-tabs-preCls} {
+  display: flex;
+  flex-direction: column;
+  color: #28292c;
+  border: 2px solid m9Themed('m9-dividerClr');
+  border-radius: 6px;
+  &__header {
+    position: relative;
+    padding: 0 2.5rem 0.5rem 2.5rem;
+    background-color: m9Themed('m9-element-bgClr');
+    border-bottom: 2px solid m9Themed('m9-dividerClr');
+    &--prev {
+      position: absolute;
+      left: 0;
+    }
+    &--next {
+      position: absolute;
+      right: 0;
+    }
+  }
+  &__viewport {
+    overflow: hidden;
+    &--wrapper {
+      text-wrap: nowrap;
+      display: flex;
+      transition: transform 0.5s;
+    }
+  }
+  &__item {
+    border: 1px solid #efddff;
+    border-bottom-color: m9Themed('m9-element-active-borderClr');
+    cursor: pointer;
+    padding: 0 0.3rem;
+    position: relative;
+    &::before, &::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 0.3rem;
+      height: 0.3rem;
+      border-radius: 50%;
+      background-color: m9Themed('m9-element-active-borderClr');
+    }
+    &.active {
+      border-color: m9Themed('m9-element-borderClr');
+      border-bottom-color: transparent;
+      background-color: m9Themed('m9-inner-element-bgClr');
+      &::before, &::after {
+        background-color: m9Themed('button-danger-fontClr');
+      }
+      &::after {
+        animation: miku-tabs-active-dot 2s ease infinite;
+      }
+    }
+  }
+  &__content {
+    background-color: m9Themed('m9-inner-element-active-bgClr');
+    min-height: 5rem;
+    padding: 1rem;
+  }
+}
+
+.tabs-content-enter-active, .tabs-content-leave-active {
+  transition: all 0.5s;
+}
+.tabs-content-enter-active {
+  animation: miku-tabs-content-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tabs-content-leave-active {
+  animation: miku-tabs-content-exit 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes miku-tabs-content-enter {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes miku-tabs-content-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes miku-tabs-active-dot {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(5);
+  }
+}

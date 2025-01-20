@@ -1,3 +1,7 @@
 /node_modules/*
+
+./m9-bundle
+
 /docs/.vitepress/dist
+
 /docs/.vitepress/cache

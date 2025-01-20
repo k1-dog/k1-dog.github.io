@@ -1,7 +1,7 @@
 $miku-modal-preCls : "#{$m9-preCls}-modal";
 
 .#{$miku-modal-preCls} {
-  color: $m9-element-fontClr;
+  color: m9Themed('m9-element-fontClr');
   border-radius: 8px;
 
   // ? 这里用 absolute 绝对定位 - 弹框整体宽度就是 由内容撑开的; relative 相对定位 - 整体宽度就是默认DOM文档流(浏览器)的宽度, 和 'div' 一样的效果
@@ -9,7 +9,7 @@ $miku-modal-preCls : "#{$m9-preCls}-modal";
   // ? absolute:绝对定位,相对最近父元素,原有空间不保留会被其他元素挤占。宽度为文本宽度,且宽度不会影响父元素宽度
   position: absolute; // 这里不要用 fixed 固定定位 - 否则 modal 上边包裹的 M9Drgger 拖拽元素无法被 modal-drawer 元素自动撑开宽高
 
-  background: $m9-element-bgClr;
+  background: m9Themed('m9-element-bgClr');
   // ! drawer - 抽屉类型 单独设置样式
   &.is-drawer {
     .#{$miku-modal-preCls}__header {
@@ -45,7 +45,7 @@ $miku-modal-preCls : "#{$m9-preCls}-modal";
     display: flex;
     align-items: center;
     justify-content: space-around;
-    border-bottom: 2px solid $m9-inner-element-borderSideClr;
+    border-bottom: 2px solid m9Themed('m9-inner-element-borderSideClr');
     box-shadow: 0 1px 3px #7b7b7b;
     padding: 0.5rem;
     user-select: none;

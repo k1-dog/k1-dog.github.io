@@ -18,8 +18,8 @@ $checkBoxSize: 18px;
   /* 内部结构样式 */
   display: block;
   padding: 0.3em 0.5em;
-  border: 1px solid $m9-element-borderClr;
-  background: $m9-element-bgClr;
+  border: 1px solid m9Themed('m9-element-borderClr');
+  background: m9Themed('m9-element-bgClr');
   border-radius: 4px;
 
   font-size: $miku-font-small * 1.1;
@@ -36,7 +36,7 @@ $checkBoxSize: 18px;
     display: inline-flex;
     align-items: center;
     
-    color: $m9-element-fontClr;
+    color: m9Themed('m9-element-fontClr');
     
     user-select: none;
 
@@ -47,7 +47,7 @@ $checkBoxSize: 18px;
         &__input {
           background: #ffffff;
           color: var(--purple);
-          border: 1px solid $m9-element-active-borderClr;
+          border: 1px solid m9Themed('m9-element-active-borderClr');
         }
       }
       position: relative;
@@ -55,7 +55,7 @@ $checkBoxSize: 18px;
       // margin-right: 0.4em;
       // 内边距设置 - 这个是纯美化效果
       padding: 0.2rem;
-      border: 1px solid $m9-element-borderClr;
+      border: 1px solid m9Themed('m9-element-borderClr');
       border-radius: 4px;
       box-shadow: 0 0 2px 1px inset gray;
       &__inner {
@@ -110,7 +110,7 @@ $checkBoxSize: 18px;
         pointer-events: none;
         .#{$miku-check-preCls}__item-checkbox__input {
           //  禁用复选框时 - 背景变成深灰
-          background: $m9-element-disabled-bgClr;
+          background: m9Themed('m9-element-disabled-bgClr');
         }
       }
     }

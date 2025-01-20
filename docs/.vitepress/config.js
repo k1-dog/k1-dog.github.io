@@ -39,6 +39,8 @@ module.exports = {
       ...createCheckBoxMenus(),
       ...createDatePickerMenus(),
       ...createPopoverMenus(),
+      ...createCardMenus(),
+      ...createTabsMenus(),
       ...createFileMenus(),
       ...createTableMenus(),
       ...createFormMenus(),
@@ -118,6 +120,24 @@ function createCheckBoxMenus () {
     {
       text: 'CheckBox 选择框',
       link: '/components/CheckBox/CheckBox.md'
+    }
+  ]
+}
+// 16.
+function createCardMenus () {
+  return [
+    {
+      text: 'Card 卡片',
+      link: '/components/Card/Card.md'
+    }
+  ]
+}
+// 17.
+function createTabsMenus () {
+  return [
+    {
+      text: 'Tabs 标签栏',
+      link: '/components/Tabs/Tabs.md'
     }
   ]
 }

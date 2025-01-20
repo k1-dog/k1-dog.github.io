@@ -28,6 +28,8 @@ interface M9VSWindowProps {
   height: number
   // ? 虚拟化 - 可视窗口内 - 单元高度
   unitHeight: number
+  // ? 虚拟化 - 全部内容窗口 - 总高度
+  totalUnitHeight: number
   // ? 虚拟化 - 可视窗口上下两边留出的多余数据数量 <防止滚动过快出现的上下留白情况, 避免造成不流畅的观感体验>
   restViewLength: number;
   // ? 虚拟化 - 可视窗口最大能承载的数据数量
@@ -52,6 +54,10 @@ export default defineComponent({
     vsStyle: {
       type: Object as PropType<M9VScrollProps['vsStyle']>,
       default: () => ({ x: 700, h: 500 })
+    },
+    loadingStyle: {
+      type: Object,
+      default: () => ({})
     },
     data: {
       type: Array as PropType<M9VScrollProps['data']>,
@@ -87,6 +93,7 @@ export default defineComponent({
     var vsWindow: M9VSWindowProps = {
       width: 0,
       height: 0,
+      totalUnitHeight: 0,
       unitHeight: vsUnitHeight,
       restViewLength: 2,
       dataViewLength: 0,
@@ -100,7 +107,7 @@ export default defineComponent({
     function onVScroll (e: any) {
       const currentScrollTop = e.target.scrollTop || 0
       
-      const { unitHeight, restViewLength, dataViewLength, height, __contentEl } = vsWindow
+      const { unitHeight, restViewLength, dataViewLength, totalUnitHeight, __contentEl } = vsWindow
 
       // 计算当前可视窗口 - 滚动到 - 第几个数据索引坐标了 (要向下取值 - 思考下为啥)
       const _currentScrollIndex = Math.floor(currentScrollTop / unitHeight)
@@ -112,7 +119,7 @@ export default defineComponent({
       // vsContentEle.style.transform = `translateY(${_topIndex * unitHeight}px)`
       vsContentEle.style.setProperty('willChange', 'padding-top padding-bottom')
       vsContentEle.style.paddingTop = `${_topIndex * unitHeight}px`
-      vsContentEle.style.paddingBottom = `${height - _topIndex * unitHeight}px`
+      vsContentEle.style.paddingBottom = `${totalUnitHeight - _topIndex * unitHeight}px`
       vsContentEle.style.removeProperty('willChange')
 
       state.topIndex = _topIndex
@@ -140,7 +147,7 @@ export default defineComponent({
         vsWindow.__viewportEl = _vsWindowEle
         fillContentElHeight(props.data.length)
         // ! 虚拟窗口滚动之前, 先自动触发一次 onVScroll监听事件, 否则初次没有数据渲染, 窗口没有子元素撑开, 就没有高度, 滚动不起来
-        onVScroll({ target: { scrollHeight: 0 } })
+        onVScroll({ target: { scrollTop: 0 } })
 
         __on(vsWindow.__viewportEl, 'scroll', _optmizeVScroll)
 
@@ -164,6 +171,7 @@ export default defineComponent({
       vsWindow.__contentEl = getContentElement()
       // 计算被滚动的内容区域 - 总高度 = 每行高度 * 数据总行数
       const totalContentHeight = vsUnitHeight * dataLength
+      vsWindow.totalUnitHeight = totalContentHeight
       vsWindow.__contentEl!.style.height = `${totalContentHeight}px`
     }
 
@@ -171,7 +179,7 @@ export default defineComponent({
     watch(() => props.data.length, (newDataLength) => {
       if (__global_is_observeVS) {
         fillContentElHeight(newDataLength)
-        onVScroll({ target: { scrollHeight: 0 } })
+        onVScroll({ target: { scrollTop: 0 } })
       }
     })
 
@@ -187,12 +195,13 @@ export default defineComponent({
   render () {
     const { vsData, loading } = this
 
-    const { vsStyle, vsElement } = this.$props
+    const { loadingStyle, vsElement } = this.$props
 
     const childrenVNode = this.$slots.default!(vsData)[0]
     
     return (
       <Spin
+        style={loadingStyle}
         spinning={loading}
         className="m9-vscroller"
         to={vsElement}

@@ -4,10 +4,11 @@
   "description": "a vue version of miku-mirai ui corresponded to m9-k1-react version",
   "main": "m9-0.js",
   "scripts": {
-    "serve:m9": "vite",
-    "types:m9": "tsc",
-    "build:m9": "vite build",
-    "deploy:m9": "bash deploy.sh",
+    "serve:k1": "vite",
+    "types:k1": "tsc",
+    "build:k1": "vite build",
+    "build-wonderful:k1": "vite build",
+    "deploy:k1": "bash deploy.sh",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
@@ -20,7 +21,7 @@
   "author": "傲雪凌寒小七罪",
   "license": "ISC",
   "dependencies": {
-    "@kego/m9-k1-ui": "^0.0.5",
+    "@kego/m9-k1-ui": "^0.0.8",
     "classnames": "^2.3.1",
     "core-js": "^3.6.5",
     "dayjs": "^1.11.5",

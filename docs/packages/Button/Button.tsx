@@ -75,9 +75,9 @@ export default defineComponent({
     const onHandleClick: Function = (e: PointerEvent) => {
       // 不加这行阻止冒泡的话, 这个按钮点击事件会连续触发两次
       // 奇怪的是 并不是这里的点击事件触发两次, 而是外部监听这个点击事件的回调事件会连续两次执行, 搞不懂
-      // e && e.stopPropagation()
+      e && e.stopPropagation()
       
-      console.log('🚀 ~ Button::setup ~ e:', e)
+      // console.log('🚀 ~ Button::setup ~ e:', e)
       ctx.emit('click', e)
     }
     return {

@@ -16,10 +16,10 @@ $miku-table-cell-size : 1rem;
     /* 外部结构样式 */
     
     /* 内部结构样式 */
-    border: 1px solid $m9-element-borderClr;
+    border: 1px solid m9Themed('m9-element-borderClr');
     border-radius: 4px;
 
-    color: $m9-element-fontClr;
+    color: m9Themed('m9-element-fontClr');
     line-height: 1rem;
     font-size: $miku-table-cell-size;
 
@@ -40,7 +40,7 @@ $miku-table-cell-size : 1rem;
         
         user-select: none;
         font-weight: bold;
-        color: $m9-table-thead-fontClr;
+        color: m9Themed('m9-table-thead-fontClr');
       }
     }
 
@@ -69,9 +69,9 @@ $miku-table-cell-size : 1rem;
 
     .#{$miku-table-preCls}__cell {
       border: none !important;
-      border-bottom: 1px solid $m9-table-trow-divideClr !important;
+      border-bottom: 1px solid m9Themed('m9-table-trow-divideClr') !important;
       padding: 0.75rem 1rem;
-      background-color: $m9-table-trow-bgClr;
+      background-color: m9Themed('m9-table-trow-bgClr');
       display: flex;
       align-items: center;
       // 文本太长会自动换行, 影响定义的每行固定高度, 影响虚拟滚动计算

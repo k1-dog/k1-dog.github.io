@@ -49,7 +49,7 @@ export default defineComponent({
               }
             </Switch>
           </div>
-          <Popover>
+          <Popover position="left">
             {
               {
                 default: () => <img className={`${mnav_header_cls}-right__avatar`} src="/miku-logo.webp"></img>,

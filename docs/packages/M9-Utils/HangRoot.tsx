@@ -111,6 +111,8 @@ export default defineComponent({
       }
     }
 
+    // state._container_ = setupContainer()
+
     onBeforeMount(() => {
       // hangRoot 组件挂载阶段, 标记 MOUNT_FLAG 为true
       state.MOUNT_FLAG = true
@@ -130,12 +132,8 @@ export default defineComponent({
 
     watch(() => props.isOpen, (isOpen) => {
       if (isOpen) {
-        if (!state._container_) {
-          state._container_ = setupContainer()
-        } else {
-          checkIsStyleRefresh(state._container_);
-          (state._container_ as any).style.display = 'block'
-        }
+        checkIsStyleRefresh(state._container_);
+        (state._container_ as any).style.display = 'block'
       } else {
         (state._container_ as any).style.display = 'none'
       }

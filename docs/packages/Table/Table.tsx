@@ -118,7 +118,7 @@ export default defineComponent({
           {
             [
               <MTableHeader MTableHeadColumns={M9Columns} onRefreshM9Columns={onRefreshM9Columns} style={{ height: `${M9TableHHeight}px` }} />,
-              <M9VScroller vsElement={() => this.viewportRef} vsUnitHeight={MTRowHeight} data={M9Data}>
+              <M9VScroller vsElement={() => this.viewportRef} vsUnitHeight={MTRowHeight} data={M9Data} loadingStyle={{ position: 'sticky' }}>
                 {
                   {
                     default: (vsData: MTableProps['MikuDataSource']) => {

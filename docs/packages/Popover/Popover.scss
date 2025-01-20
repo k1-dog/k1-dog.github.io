@@ -14,7 +14,7 @@ $popper-constructor: (
   overflow: hidden,
   box-shadow: 0 0 4px #282a36,
   border-radius: 7px,
-  background-color: $m9-element-active-bgClr,
+  background-color: m9Themed('m9-element-active-bgClr'),
   padding: 10px,
 );
 

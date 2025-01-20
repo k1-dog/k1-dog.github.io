@@ -75,6 +75,56 @@ $button-main-active-fontClr: #f8f4ff;
 $button-main-active-bgClr: #a86dff;
 $button-main-active-borderClr: #da9bff;
 
+$theme-config: (
+  m9-element-fontClr: $m9-element-fontClr,
+  m9-element-borderClr: $m9-element-borderClr,
+  m9-element-bgClr: $m9-element-bgClr,
+  m9-element-active-borderClr: $m9-element-active-borderClr,
+  m9-element-active-bgClr: $m9-element-active-bgClr,
+  m9-element-disabled-fontClr: $m9-element-disabled-fontClr,
+  m9-element-disabled-bgClr: $m9-element-disabled-bgClr,
+  m9-element-disabled-borderClr: $m9-element-disabled-borderClr,
+  m9-inner-element-fontClr: $m9-inner-element-fontClr,
+  m9-inner-element-bgClr: $m9-inner-element-bgClr,
+  m9-inner-element-borderSideClr: $m9-inner-element-borderSideClr,
+  m9-inner-element-active-bgClr: $m9-inner-element-active-bgClr,
+  m9-inner-element-disabled-bgClr: $m9-inner-element-disabled-bgClr,
+  m9-inner-element-disabled-borderSideClr: $m9-inner-element-disabled-borderSideClr,
+  m9-switcher-fontClr: $m9-switcher-fontClr,
+  m9-switcher-bgClr: $m9-switcher-bgClr,
+  m9-switcher-borderClr: $m9-switcher-borderClr,
+  m9-switcher-active-bgClr: $m9-switcher-active-bgClr,
+  m9-switcher-active-borderClr: $m9-switcher-active-borderClr,
+  m9-dividerClr: $m9-dividerClr,
+  m9-form-shadowClr: $m9-form-shadowClr,
+  m9-table-thead-fontClr: $m9-table-thead-fontClr,
+  m9-table-trow-divideClr: $m9-table-trow-divideClr,
+  m9-table-trow-bgClr: $m9-table-trow-bgClr,
+  m9-menu-header-shadowClr: $m9-menu-header-shadowClr,
+  button-danger-fontClr: $button-danger-fontClr,
+  button-danger-bgClr: $button-danger-bgClr,
+  button-danger-outlineClr: $button-danger-outlineClr,
+  button-danger-active-fontClr: $button-danger-active-fontClr,
+  button-danger-active-bgClr: $button-danger-active-bgClr,
+  button-danger-active-borderClr: $button-danger-active-borderClr,
+  button-pure-fontClr: $button-pure-fontClr,
+  button-pure-bgClr: $button-pure-bgClr,
+  button-pure-outlineClr: $button-pure-outlineClr,
+  button-pure-active-fontClr: $button-pure-active-fontClr,
+  button-pure-active-bgClr: $button-pure-active-bgClr,
+  button-pure-active-borderClr: $button-pure-active-borderClr,
+  button-main-fontClr: $button-main-fontClr,
+  button-main-bgClr: $button-main-bgClr,
+  button-main-outlineClr: $button-main-outlineClr,
+  button-main-active-fontClr: $button-main-active-fontClr,
+  button-main-active-bgClr: $button-main-active-bgClr,
+  button-main-active-borderClr: $button-main-active-borderClr,
+);
+
+@function m9Themed ($theme-cnf-key) {
+  @return map-get($map: $theme-config, $key: $theme-cnf-key);
+}
+
 /*
  * 美九未来主题风格变量配置
  */
@@ -106,6 +156,9 @@ $miku-blue-0: #0091FF;
   --orange-0: #f7b500;
 }
 // m9-theme="light"
+body {
+  color: m9Themed('m9-element-fontClr');
+}
 [class="dark"]:root {
   body {
     background-color: #1b1b1f;

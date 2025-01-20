@@ -17,7 +17,7 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
     padding: 4px 6px;
     display: flex;
     align-items: center;
-    box-shadow: inset 0 0px 10px $m9-menu-header-shadowClr;
+    box-shadow: inset 0 0px 10px m9Themed('m9-menu-header-shadowClr');
     @mixin head-img-basestyle {
       width: calc($head-h / 2);
       height: calc($head-h / 2);
@@ -33,7 +33,7 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
         margin-right: 5px;
       }
       &__text {
-        color: $m9-element-fontClr;
+        color: m9Themed('m9-element-fontClr');
         font-size: 16px;
         font-family: fantasy;
         text-decoration: underline;
@@ -43,8 +43,8 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
       flex: 8;
       display: flex;
       justify-content: center;
-      border-left: solid 2px $m9-inner-element-borderSideClr;
-      border-right: solid 2px $m9-inner-element-borderSideClr;
+      border-left: solid 2px m9Themed('m9-inner-element-borderSideClr');
+      border-right: solid 2px m9Themed('m9-inner-element-borderSideClr');
     }
     &-right {
       flex: 3;
@@ -74,12 +74,12 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
     padding: 1rem;
     margin-top: $head-h;
     margin-left: $sidebar-w;
-    color: $m9-element-fontClr;
+    color: m9Themed('m9-element-fontClr');
   }
   // 尾部(footer)布局样式
   &__footer {
     text-align: center;
-    color: $m9-element-fontClr;
+    color: m9Themed('m9-element-fontClr');
     position: absolute;
     bottom: 0;
     width: calc(100% - $sidebar-w);
@@ -91,10 +91,10 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
     height: 100%;
     padding: 8px 6px;
     border-right: solid 3px orange;
-    background-color: $m9-element-bgClr;
+    background-color: m9Themed('m9-element-bgClr');
     // 侧导航内的大标题样式
     &-title {
-      color: $m9-element-fontClr;
+      color: m9Themed('m9-element-fontClr');
       text-align: center;
       font-weight: 700;
       font-size: 24px;
@@ -108,7 +108,7 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
         list-style: none;
         display: flex;
         align-items: center;
-        color: $m9-element-fontClr;
+        color: m9Themed('m9-element-fontClr');
         cursor: pointer;
         border-radius: 4px;
         transition: all 300ms;
@@ -124,8 +124,8 @@ $miku-nav-preCls : "#{$m9-preCls}-nav";
           text-align: right;
         }
         &.is-selected, &:hover {
-          color: $m9-inner-element-borderSideClr;
-          background-color: $m9-inner-element-bgClr;
+          color: m9Themed('m9-inner-element-borderSideClr');
+          background-color: m9Themed('m9-inner-element-bgClr');
         }
       }
 

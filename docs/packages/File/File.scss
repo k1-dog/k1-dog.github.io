@@ -23,7 +23,7 @@ $miku-file-preCls: '#{$m9-preCls}-file';
   width: 12rem;
   /* 内部结构样式 */
   padding: 0.3em 0.5em;
-  border: 1px solid $m9-element-borderClr;
+  border: 1px solid m9Themed('m9-element-borderClr');
   border-radius: 5px;
 
   /* 特殊样式 */
@@ -45,21 +45,21 @@ $miku-file-preCls: '#{$m9-preCls}-file';
     @include m9-flex-center();
     justify-content: flex-start;
     width: 100%;
-    border-bottom: 2px dashed $m9-dividerClr;
+    border-bottom: 2px dashed m9Themed('m9-dividerClr');
     padding: 4px;
     margin-bottom: 12px;
     &__icon {
       margin-right: 8px;
       width: 2rem; height: 2rem;
-      color: $m9-element-fontClr;
-      background-color: $m9-element-bgClr;
+      color: m9Themed('m9-element-fontClr');
+      background-color: m9Themed('m9-element-bgClr');
       border-radius: 50%;
       padding: 0.2rem;
     }
     &__title {
       font-size: 1rem;
       font-weight: bold;
-      color: $m9-element-fontClr;
+      color: m9Themed('m9-element-fontClr');
     }
   }
 
@@ -68,7 +68,7 @@ $miku-file-preCls: '#{$m9-preCls}-file';
     overflow-y: scroll;
 
     &__item {
-      background: $m9-element-bgClr;
+      background: m9Themed('m9-element-bgClr');
       padding: 4px;
       width: 100%;
       height: 6rem;
@@ -88,7 +88,7 @@ $miku-file-preCls: '#{$m9-preCls}-file';
     .desc-wrap {
       overflow: hidden;
       span {
-        color: $m9-element-fontClr;
+        color: m9Themed('m9-element-fontClr');
       }
       .file-name {
         @include m9-text-overflow();
@@ -135,7 +135,7 @@ $miku-file-preCls: '#{$m9-preCls}-file';
     font-size: 0.8rem;
     color: #fff;
     padding: 0.5rem;
-    background-color: $m9-inner-element-bgClr;
+    background-color: m9Themed('m9-inner-element-bgClr');
     border-radius: 6px;
     &--label {
       // 占位元素 -- 没有图片时, 显示个骨架

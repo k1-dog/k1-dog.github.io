@@ -1,8 +1,8 @@
 $miku-select-preCls: '#{$m9-preCls}-select';
 
 $sContainerStyles: (
-  bg-color: $m9-element-bgClr,
-  font-color: $m9-element-fontClr,
+  bg-color: m9Themed('m9-element-bgClr'),
+  font-color: m9Themed('m9-element-fontClr'),
   border-color: var(--gray-dark-1),
   active-font-color: var(--gray-dark-9),
   active-bg-color: var(--blue-light)
@@ -18,12 +18,12 @@ $sContainerStyles: (
   /* 内部结构样式 */
   display: inline-block;
   padding: 0.3em 0.5em;
-  border: 1px solid $m9-element-borderClr;
+  border: 1px solid m9Themed('m9-element-borderClr');
   border-radius: 5px;
 
   font-size: $miku-font-small * 1.1;
-  color: $m9-element-fontClr;
-  background-color: $m9-element-bgClr;
+  color: m9Themed('m9-element-fontClr');
+  background-color: m9Themed('m9-element-bgClr');
 
   /* 特殊样式 */
   transition: all 0.22s;
@@ -46,9 +46,9 @@ $sContainerStyles: (
         &--item {
           display: inline-flex;
           height: 2em;
-          background: $m9-element-borderClr;
-          border: solid $m9-inner-element-borderSideClr;
-          box-shadow: 0 0 1px 1px $m9-element-bgClr;
+          background: m9Themed('m9-element-borderClr');
+          border: solid m9Themed('m9-inner-element-borderSideClr');
+          box-shadow: 0 0 1px 1px m9Themed('m9-element-bgClr');
           border-radius: 8px;
           color: #222;
           align-items: center;
@@ -72,21 +72,21 @@ $sContainerStyles: (
     @include m9-flex-center();
     padding: 0.5rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid $m9-inner-element-borderSideClr;
+    border-bottom: 2px solid m9Themed('m9-inner-element-borderSideClr');
     > input {
       width: 100%;
       padding: .3em;
       outline: none;
       border: none;
       border-radius: 6px;
-      background-color: $m9-inner-element-bgClr;
-      color: $m9-element-fontClr;
+      background-color: m9Themed('m9-inner-element-bgClr');
+      color: m9Themed('m9-element-fontClr');
       &::placeholder {
-        color: $m9-element-fontClr;
+        color: m9Themed('m9-element-fontClr');
         text-shadow: 0 0 2px #fff;
       }
       &:hover {
-        background-color: $m9-element-active-bgClr;
+        background-color: m9Themed('m9-element-active-bgClr');
       }
     }
   }
@@ -98,7 +98,7 @@ $sContainerStyles: (
     background-color: map-get($map: $sContainerStyles, $key: bg-color);
     color: map-get($map: $sContainerStyles, $key: font-color);
     border-radius: 4px;
-    box-shadow: 0 0 2px 0 $m9-inner-element-borderSideClr;
+    box-shadow: 0 0 2px 0 m9Themed('m9-inner-element-borderSideClr');
     cursor: pointer;
 
     &--viewport {
@@ -120,13 +120,13 @@ $sContainerStyles: (
 
       &:hover {
         opacity: 1;
-        color: $m9-inner-element-borderSideClr;
-        background-color: $m9-element-active-bgClr;
+        color: m9Themed('m9-inner-element-borderSideClr');
+        background-color: m9Themed('m9-element-active-bgClr');
       }
 
       &.m-selected {
         color: var(--blue);
-        background-color: $m9-element-active-bgClr;
+        background-color: m9Themed('m9-element-active-bgClr');
       }
 
       &-content {

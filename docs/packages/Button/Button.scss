@@ -60,43 +60,43 @@ $miku-btn-preCls : "#{$m9-preCls}-btn";
     $btn: #{&}--btn;
 
     &-type-main {
-      box-shadow: 0 0 0 1px $button-main-outlineClr;
+      box-shadow: 0 0 0 1px m9Themed('button-main-outlineClr');
       & > #{$btn} {
-        color: $button-main-fontClr;
-        background: $button-main-bgClr;
+        color: m9Themed('button-main-fontClr');
+        background: m9Themed('button-main-bgClr');
 
         &:active, &:hover, &:focus {
-            color: $button-main-active-fontClr;
-            background: $button-main-active-bgClr;
-            border-color: $button-main-active-borderClr;
+            color: m9Themed('button-main-active-fontClr');
+            background: m9Themed('button-main-active-bgClr');
+            border-color: m9Themed('button-main-active-borderClr');
         }
       }
     }
 
     &-type-pure {
-      box-shadow: 0 0 0 1px $button-pure-outlineClr;
+      box-shadow: 0 0 0 1px m9Themed('button-pure-outlineClr');
       & > #{$btn} {
-        color: $button-pure-fontClr;
-        background: $button-pure-bgClr;
+        color: m9Themed('button-pure-fontClr');
+        background: m9Themed('button-pure-bgClr');
 
         &:active, &:hover, &:focus {
-            color: $button-pure-active-fontClr;
-            background: $button-pure-active-bgClr;
-            border-color: $button-pure-active-borderClr;
+            color: m9Themed('button-pure-active-fontClr');
+            background: m9Themed('button-pure-active-bgClr');
+            border-color: m9Themed('button-pure-active-borderClr');
         }
       }
     } 
 
     &-type-danger {
-      box-shadow: 0 0 0 1px $button-danger-outlineClr;
+      box-shadow: 0 0 0 1px m9Themed('button-danger-outlineClr');
       & > #{$btn} {
-          color: $button-danger-fontClr;
-          background: $button-danger-bgClr;
+          color: m9Themed('button-danger-fontClr');
+          background: m9Themed('button-danger-bgClr');
 
           &:hover, &:active, &:focus {
-              color: $button-danger-active-fontClr;
-              background: $button-danger-active-bgClr;
-              border-color: $button-danger-active-borderClr;
+              color: m9Themed('button-danger-active-fontClr');
+              background: m9Themed('button-danger-active-bgClr');
+              border-color: m9Themed('button-danger-active-borderClr');
           }
       }
     }

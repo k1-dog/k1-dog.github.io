@@ -113,7 +113,8 @@ export default defineComponent ({
   },
   render() {
     const {
-      $props: { spinning, text }
+      $props: { spinning, text },
+      $attrs: { style = {} }
     } = this
 
     const childrenVNode = this.$slots.default!()
@@ -125,7 +126,7 @@ export default defineComponent ({
     return (
       <>
         {
-          <div v-show={spinning} ref={(_r_: any) => this.SpinRef = _r_} className={spin_cls}>
+          <div v-show={spinning} ref={(_r_: any) => this.SpinRef = _r_} className={spin_cls} style={style}>
             <div ref={(_spinLoadingRef_: any) => this.SpinLoadingRef = _spinLoadingRef_} className={`${spin_cls}__loading`}>
               <div className={`${spin_cls}__loading--ball`}></div>
             </div>

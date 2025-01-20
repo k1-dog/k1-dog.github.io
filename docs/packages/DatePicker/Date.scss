@@ -112,10 +112,10 @@ $miku-date-height: $miku-date-size-base * 12;
 
 .#{$miku-date-preCls} {
   width: $miku-date-width;
-  color: $m9-element-fontClr;
-  background-color: $m9-element-bgClr;
+  color: m9Themed('m9-element-fontClr');
+  background-color: m9Themed('m9-element-bgClr');
   border-radius: 7px;
-  box-shadow: 0 0 12px $m9-element-active-bgClr;
+  box-shadow: 0 0 12px m9Themed('m9-element-active-bgClr');
   // height: $miku-date-height;
   /** head - style */
   $head-view-padding: $miku-date-size-base * 1;
@@ -166,26 +166,26 @@ $miku-date-height: $miku-date-size-base * 12;
       border-radius: 6px;
       &.selected {
         opacity: 1;
-        background-color: $m9-element-active-bgClr;
-        border: 1px solid $button-pure-active-borderClr;
+        background-color: m9Themed('m9-element-active-bgClr');
+        border: 1px solid m9Themed('button-pure-active-borderClr');
         border-radius: 100%;
-        color: $button-danger-active-borderClr;
+        color: m9Themed('button-danger-active-borderClr');
       }
       &.disabled {
         cursor: not-allowed;
-        background-color: $m9-element-disabled-bgClr;
-        color: $m9-element-fontClr;
+        background-color: m9Themed('m9-element-disabled-bgClr');
+        color: m9Themed('m9-element-fontClr');
         pointer-events: none;
       }
       &:hover {
         opacity: 1;
-        color: $m9-element-bgClr;
-        background-color: $button-pure-active-bgClr;
+        color: m9Themed('m9-element-bgClr');
+        background-color: m9Themed('button-pure-active-bgClr');
       }
     }
     &__date-head {
       font-size: 12px;
-      background-color: $m9-inner-element-bgClr;
+      background-color: m9Themed('m9-inner-element-bgClr');
       user-select: none;
       pointer-events: none;
     }

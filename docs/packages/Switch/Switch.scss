@@ -5,7 +5,7 @@ $miku-switcher-preCls : "#{$m9-preCls}-switcher";
 .#{$miku-switcher-preCls} {
   position: relative;
   cursor: pointer;
-  color: $m9-switcher-fontClr;
+  color: m9Themed('m9-switcher-fontClr');
   padding: 0.1em;
   border: 2px solid;
   border-radius: 30px;
@@ -26,14 +26,14 @@ $miku-switcher-preCls : "#{$m9-preCls}-switcher";
     }
     // ! 激活开关时 - 中间切换框元素 - 背景高亮
     .#{$miku-switcher-preCls}__inner {
-      background-color: $m9-switcher-active-bgClr;
+      background-color: m9Themed('m9-switcher-active-bgClr');
     }
-    border-color: $m9-switcher-active-borderClr;
-    box-shadow: 0 0 1px 1px $m9-switcher-active-borderClr;
+    border-color: m9Themed('m9-switcher-active-borderClr');
+    box-shadow: 0 0 1px 1px m9Themed('m9-switcher-active-borderClr');
   }
   &--unactived {
     box-shadow: unset;
-    border-color: $m9-switcher-borderClr;
+    border-color: m9Themed('m9-switcher-borderClr');
     // ! 熄灭开关时 - 左元素渐渐出现 + 平移回来
     .#{$miku-switcher-preCls}__left {
       transform: translateX(100%);
@@ -46,7 +46,7 @@ $miku-switcher-preCls : "#{$m9-preCls}-switcher";
     }
     // ! 熄灭开关时 - 中间切换框元素 - 背景灰沉
     .#{$miku-switcher-preCls}__inner {
-      background-color: $m9-switcher-bgClr;
+      background-color: m9Themed('m9-switcher-bgClr');
       &::before {
         transform: translateX(0);
       }
