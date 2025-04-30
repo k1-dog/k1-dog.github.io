@@ -1,7 +1,7 @@
-/node_modules/*
+node_modules/
 
 ./m9-bundle
 
-/docs/.vitepress/dist
+/apps/eyes/.vitepress/dist
 
-/docs/.vitepress/cache
+/apps/eyes/.vitepress/cache

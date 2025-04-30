@@ -4,10 +4,10 @@
 set -e  #有错误抛出错误
 
 # 构建
-npm run docs:build  #然后执行打包命令
+pnpm run build:eyes  #然后执行打包命令
 
 # 进入待发布的目录
-cd docs/.vitepress/dist  #进到dist目录
+cd apps/eyes/.vitepress/dist  #进到dist目录
 
 git init  #执行这些git命令
 git add -A
@@ -17,4 +17,4 @@ git push -f https://github.com/k1-dog/k1-dog.github.io.git master:gh-pages  #提
 
 cd -
 
-rm -rf docs/.vitepress/dist  #删除dist文件夹
+rm -rf apps/eyes/.vitepress/dist  #删除dist文件夹

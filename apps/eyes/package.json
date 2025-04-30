@@ -1,0 +1,23 @@
+{
+  "name": "@k1/eyes",
+  "version": "0.0.1",
+  "description": "miku k1 eye of docs-site",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "serve": "vitepress serve"
+  },
+  "keywords": [
+    "eye of site",
+    "vitepress",
+    "docs"
+  ],
+  "author": "naTsuM1",
+  "license": "ISC",
+  "dependencies": {
+    "@k1/ui-lib": "workspace:^0.0.1",
+    "vitepress": "^1.0.0-rc.44"
+  }
+}

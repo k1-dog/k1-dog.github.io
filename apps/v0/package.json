@@ -1,0 +1,12 @@
+{
+  "name": "@k1/v0",
+  "version": "0.0.1",
+  "description": "miku k1 visualization",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["charts", "visualization", "v0"],
+  "author": "",
+  "license": "ISC"
+}

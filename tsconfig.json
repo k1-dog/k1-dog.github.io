@@ -5,7 +5,7 @@
     "baseUrl": ".",
     "target": "ES2015",
     "module": "ESNext",
-    "rootDir": "./docs",
+    "rootDir": "apps",
     "outDir": "./m9-d-ts",
     "allowJs": false,
     "declaration": true,
@@ -23,8 +23,8 @@
     "lib": ["esnext", "dom"]
   },
   "include": [
-    "docs/packages",
-    "./miku-types/**/*.d.ts",
+    "apps/components", "apps/styles", "apps/utils", "apps/v0",
+    "./miku-types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]
 }

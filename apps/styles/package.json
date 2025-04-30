@@ -1,0 +1,24 @@
+{
+  "name": "@k1/styles",
+  "version": "0.0.1",
+  "description": "miku k1 styles for ui-lib",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "styles",
+    "theme"
+  ],
+  "author": "naTsuM1",
+  "license": "ISC",
+  "peerDependencies": {
+    "vue": "^3.2.25"
+  },
+  "dependencies": {
+    "@k1/ui-lib": "workspace:^",
+    "@k1/utils": "workspace:^",
+    "@k1/v0": "workspace:^",
+    "sass": "^1.54.3"
+  }
+}
