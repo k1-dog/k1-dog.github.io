@@ -24,7 +24,7 @@ export default defineConfig({
     siteTitle: '美九未来 Vue-UI',
     logo: '/miku-logo.webp',
     // 网站描述
-    description: 'K1系列 美九未来 Vue版本组件库',
+    description: 'K1系列 美九未来 通用物流组件库',
     // 启动页面丝滑滚动
     smoothScroll: true,
     // 导航栏配置

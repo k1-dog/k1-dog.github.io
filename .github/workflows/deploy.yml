@@ -1,0 +1,46 @@
+# .github/workflows/deploy.yml
+name: Deploy Eyes Docs
+on:
+  push:
+    branches: [master]
+    paths: # 仅监控子模块目录下的变更
+      - 'apps/**' 
+
+permissions:
+  contents: write # 允许推送构建产物
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive # 关键：递归拉取子模块
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm i -g pnpm@10
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Build Docs
+        # working-directory: ./apps/eyes 指定子模块路径
+        run: pnpm run build:eyes
+
+      - name: Deploy to GH Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apps/eyes/.vitepress/dist # 指向构建产物的最终路径
+          destination_dir: eyes # 指定部署到gh-pages分支的/eyes目录
+          
+      # 7. 清理构建产物（新增核心步骤）
+      - name: Cleanup Artifacts
+        run: rm -rf apps/eyes/.vitepress/dist  # 删除整个dist目录
