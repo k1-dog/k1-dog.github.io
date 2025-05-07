@@ -6,16 +6,15 @@ const SiteMdsPath = '/markdowns'
 const Delimiter = '/'
 
 export default defineConfig({
-  // root: '/apps/eyes',
   // 站点标题
   title: 'M9 K1-EYES',
-  // 打包目录
-  dest: '/dist',
   // 部署的基础路径
   base: '/eyes/',
   // 静态资源目录
   assetsDir: 'assets',
   srcDir: '.',
+  // 网站描述
+  description: 'K1系列 美九未来 通用物流组件库',
   head: [
     // 添加图标
     ['link', { rel: 'icon', href: '/miku-logo.webp' }]
@@ -23,10 +22,8 @@ export default defineConfig({
   themeConfig: {
     siteTitle: '美九未来 Vue-UI',
     logo: '/miku-logo.webp',
-    // 网站描述
-    description: 'K1系列 美九未来 通用物流组件库',
     // 启动页面丝滑滚动
-    smoothScroll: true,
+    // smoothScroll: true,
     // 导航栏配置
     nav: [
       { text: '美九的小窝', link: 'https://miku-space.com/' },

@@ -18,6 +18,8 @@
   "license": "ISC",
   "dependencies": {
     "@k1/ui-lib": "workspace:^0.0.1",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "@vitejs/plugin-vue-jsx": "^4.1.2",
     "vitepress": "^1.6.3"
   }
 }

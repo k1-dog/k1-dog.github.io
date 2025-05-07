@@ -8,8 +8,6 @@
     "serve:k1": "vite",
     "types:k1": "tsc",
     "build:k1": "vite build",
-    "build-wonderful:k1": "vite build",
-    "deploy:eyes": "bash deploy.sh",
     "open:eyes": "pnpm --filter eyes serve",
     "build:eyes": "pnpm --filter eyes build",
     "build:apps": "pnpm --parallel --filter ./apps/* run build"
@@ -21,6 +19,11 @@
   ],
   "author": "傲雪凌寒小七罪",
   "license": "ISC",
+  "pnpm": {
+    "overrides": {
+      "vite": "5.4.19"
+    }
+  },
   "dependencies": {
     "@kego/m9-k1-ui": "^0.0.8",
     "core-js": "^3.6.5",
@@ -29,10 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.6.3",
-    "@vitejs/plugin-vue": "4.0.0",
-    "@vitejs/plugin-vue-jsx": "^3.1.0",
     "@vue/compiler-sfc": "^3.4.15",
-    "typescript": "^4.0.0",
-    "vite": "^4.0.0"
+    "typescript": "^4.0.0"
   }
 }
