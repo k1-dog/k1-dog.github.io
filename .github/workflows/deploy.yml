@@ -13,12 +13,12 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Code 🛎️
         uses: actions/checkout@v4
         with:
           submodules: recursive # 关键：递归拉取子模块
 
-      - name: Install pnpm
+      - name: Install pnpm 🔧
         uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -29,21 +29,32 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+      
+      - name: See pwd •͈ᴗ•͈
+        run: |
+          echo "当前工作目录: $(pwd)"
+          ls
 
-      - name: Install Dependencies
+      - name: Install Dependencies 🔧
         run: pnpm i
 
-      - name: Build Docs
-        # working-directory: ./apps/eyes 指定子模块路径
+      - name: Build Docs 🔧
+        # working-directory: /apps/eyes 指定子模块路径
         run: pnpm run build:eyes
 
-      - name: Deploy to GH Pages
+      - name: Deploy to GH Pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./apps/eyes/.vitepress/dist # 指向构建产物的最终路径
+          publish_dir: apps/eyes/.vitepress/dist # 指向构建产物的最终路径
           destination_dir: eyes # 指定部署到gh-pages分支的/eyes目录
+          keep_files: false  # 清理旧文件
+      
+      - name: See pwd •͈ᴗ•͈
+        run: |
+          echo "当前工作目录: $(pwd)"
+          ls
           
-      # 7. 清理构建产物（新增核心步骤）
+      # 7. 清理构建产物
       - name: Cleanup Artifacts
         run: rm -rf apps/eyes/.vitepress/dist  # 删除整个dist目录
