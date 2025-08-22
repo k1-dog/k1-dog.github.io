@@ -12,7 +12,7 @@ interface MikuDateHeadState extends DateBaseProps {
   subMonth (Month: DateInputT): DateInputT;
 
   addYear (Year: DateInputT): DateInputT;
-  
+
   addMonth (Month: DateInputT): DateInputT;
 }
 
@@ -95,25 +95,25 @@ export default defineComponent({
     const dhRef = ref<any>()
 
     onMounted(() => {
-      const _this$EL: HTMLDivElement =  dhRef.value
-      const _3MouseEL = _this$EL.getElementsByClassName(MDateHead3Mouse)[0] as HTMLDivElement
-      const _iH_ = window.getComputedStyle(_3MouseEL, '::before').getPropertyValue('height')
-      const _iW01_ = parseInt(window.getComputedStyle(_3MouseEL, '::before').getPropertyValue('width'))
-      const _iW02_ = parseInt(window.getComputedStyle(_3MouseEL, '::after').getPropertyValue('width'))
-      _3MouseEL.style.width = `${_iW01_ + _iW02_ + _iW01_}px`
-      _3MouseEL.style.height = _iH_
+      const this$EL: HTMLDivElement =  dhRef.value
+      const MouseEL = this$EL.getElementsByClassName(MDateHead3Mouse)[0] as HTMLDivElement
+      const iH_ = window.getComputedStyle(MouseEL, '::before').getPropertyValue('height')
+      const iW01_ = parseInt(window.getComputedStyle(MouseEL, '::before').getPropertyValue('width'))
+      const iW02_ = parseInt(window.getComputedStyle(MouseEL, '::after').getPropertyValue('width'))
+      MouseEL.style.width = `${iW01_ + iW02_ + iW01_}px`
+      MouseEL.style.height = iH_
     })
 
-    function subYear (Year: DateInputT) {
+    function subYear ($Year: DateInputT) {
       // this.setState({
       //   ...this.state,
       //   MY: Year - 1
       // })
     }
 
-    function subMonth (Month: DateInputT) {
+    function subMonth ($Month: DateInputT) {
       // # const now = mode === 'Day' ? { MY: selectDate.year(), MM: selectDate.month() + 1, MD: selectDate.date() } : { MY: selectDate.year(), MM: selectDate.month() + 1, MD }
-      const now = { MY: props.MY, MM: Month - 1, MD: props.MD }
+      const now = { MY: props.MY, MM: $Month - 1, MD: props.MD }
       ctx.emit('notifyUpdate', now)
       // this.setState({
       //   ...this.state,
@@ -121,15 +121,15 @@ export default defineComponent({
       // })
     }
 
-    function addYear (Year: DateInputT) {
+    function addYear ($Year: DateInputT) {
       // this.setState({
       //   ...this.state,
       //   MY: Year + 1
       // })
     }
 
-    function addMonth (Month: DateInputT) {
-      const now = { MY: props.MY, MM: Month + 1, MD: props.MD }
+    function addMonth ($Month: DateInputT) {
+      const now = { MY: props.MY, MM: $Month + 1, MD: props.MD }
       ctx.emit('notifyUpdate', now)
       // this.setState({
       //   ...this.state,
@@ -137,12 +137,12 @@ export default defineComponent({
       // })
     }
 
-    function dispatchArrowHandler (dh: ArrowT) {
+    function dispatchArrowHandler ($dh: ArrowT) {
       const { MY, MM } = props
       if (!MY || !MM) {
         return
       }
-      switch (dh) {
+      switch ($dh) {
         case 'lt-Y':
           subYear(MY)
           break
@@ -160,13 +160,13 @@ export default defineComponent({
       }
     }
 
-    function onArrow (e: Event) {
-      e.stopPropagation()
+    function onArrow ($e: Event) {
+      $e.stopPropagation()
 
-      const _target = e.currentTarget as any
-      console.log('🚀 ~ MikuDateHead ~ onArrow ~ _target:', _target)
-      if (!_target.dataset.dh) { return void 0 }
-      const arrowType = _target.dataset.dh
+      const target = $e.currentTarget as any
+      console.log('🚀 ~ MikuDateHead ~ onArrow ~ _target:', target)
+      if (!target.dataset.dh) { return void 0 }
+      const arrowType = target.dataset.dh
       dispatchArrowHandler(arrowType)
 
       return void 0
@@ -189,7 +189,7 @@ export default defineComponent({
     ]
     // const headPreCls = classNames(MDateHeadPreCls, MDateHead3Mouse)
     return (
-      <div className={MDateHeadPreCls} ref={(_dhRef_: any) => this.dhRef = _dhRef_}>
+      <div className={MDateHeadPreCls} ref={($dhRef: any) => this.dhRef = $dhRef}>
         <div className={MDateHead3Mouse}/>
         <div className={MDateHeadViewPreCls}  onClick={onArrow}>
         { compos }

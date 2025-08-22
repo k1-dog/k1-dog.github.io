@@ -1,0 +1,22 @@
+{
+  "name": "@k1/warden",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "the Mirror-Report-System named as Warden for War3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "War3",
+    "warden",
+    "mirror-system",
+    "hunting anywhere anytime"
+  ],
+  "author": "naTsuM1",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "@k1/http": "workspace:^"
+  }
+}

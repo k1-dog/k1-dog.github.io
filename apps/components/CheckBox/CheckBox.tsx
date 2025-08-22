@@ -60,24 +60,24 @@ const CheckBox = defineComponent({
       checkedItems: [],
       allCheckState: {
         isChecked: 0,
-        onAllChecked: (isAll: boolean) => {
+        onAllChecked: ($isAll: boolean) => {
           const { MCItems } = state
           // ! 注意 - 同步更新新全选框的状态值
           state.allCheckState.isChecked = (1 - state.allCheckState.isChecked) % 2 as 0 | 1
 
-          const _mCheckboxItems = MCItems.map(MCItem_ => {
+          const mCheckboxItems = MCItems.map($checkItem => {
             // !!! 注意 - 禁选状态的不要参与任何逻辑计算
-            if (!MCItem_.disabled) {
-              MCItem_.checked = Boolean(state.allCheckState.isChecked)
+            if (!$checkItem.disabled) {
+              $checkItem.checked = Boolean(state.allCheckState.isChecked)
             }
-            
-            return { ...MCItem_ }
+
+            return { ...$checkItem }
           })
-          state.MCItems = _mCheckboxItems
-          state.checkedItems = _mCheckboxItems.reduce<MCheckBoxState['MCItems']>(($CheckedArray, MCItem_) => {
+          state.MCItems = mCheckboxItems
+          state.checkedItems = mCheckboxItems.reduce<MCheckBoxState['MCItems']>(($CheckedArray, $checkItem) => {
             // !!! 注意 - 禁选状态的不要参与任何逻辑计算
-            if (!MCItem_.disabled && MCItem_.checked) {
-              $CheckedArray.push(MCItem_.value)
+            if (!$checkItem.disabled && $checkItem.checked) {
+              $CheckedArray.push($checkItem.value)
             }
             return $CheckedArray
           }, [])
@@ -88,19 +88,19 @@ const CheckBox = defineComponent({
       }
     })
 
-    function onChecked (MCIKey: MCItem['key']): void {
+    function onChecked ($checkKey: MCItem['key']): void {
       const { MCItems, allCheckState } = state
-      const _mCheckboxItems = MCItems.map(MCItem_ => {
-        if (MCItem_.key === MCIKey) {
-          MCItem_.checked = !MCItem_.checked
+      const mCheckboxItems = MCItems.map($checkItem => {
+        if ($checkItem.key === $checkKey) {
+          $checkItem.checked = !$checkItem.checked
         }
-        return { ...MCItem_ }
+        return { ...$checkItem }
       })
 
-      state.MCItems = _mCheckboxItems
-      state.checkedItems = _mCheckboxItems.reduce<MCheckBoxState['MCItems']>(($CheckedArray, MCItem) => {
-        if (MCItem.checked) {
-          $CheckedArray.push(MCItem.value)
+      state.MCItems = mCheckboxItems
+      state.checkedItems = mCheckboxItems.reduce<MCheckBoxState['MCItems']>(($CheckedArray, $checkItem) => {
+        if ($checkItem.checked) {
+          $CheckedArray.push($checkItem.value)
         }
 
         return $CheckedArray
@@ -108,13 +108,13 @@ const CheckBox = defineComponent({
 
       // ! 注意 - 这边和全选状态信息联动一下 - 处理下现在是不是半选或全选
       // ? 后边把这里改成用 computed 计算属性联动, 可能也不错
-      
+
       // !!! 注意 - 禁选状态的不要参与任何逻辑计算
-      const filterDisabledCheckboxItems = MCItems.filter(item => !item.disabled)
+      const filterDisabledCheckboxItems = MCItems.filter($checkItem => !$checkItem.disabled)
 
       const checkedLength = state.checkedItems.length
       const totalWithoutDisabledLength = filterDisabledCheckboxItems.length
-      
+
       if (checkedLength === 0) {
         // 一点都没选中, 全选状态一定是 0
         allCheckState.isChecked = 0
@@ -134,19 +134,19 @@ const CheckBox = defineComponent({
 
     onBeforeMount(() => {
       const { options, replaceFields } = props;
-      const items = options.map((option, index) => {
+      const items = options.map(($option, $index) => {
         return {
-          key: option[replaceFields['key']] ? option[replaceFields['key']] : index,
-          value: option[replaceFields['value']],
+          key: $option[replaceFields['key']] ? $option[replaceFields['key']] : $index,
+          value: $option[replaceFields['value']],
           checked: false,
-          disabled: option.disabled
+          disabled: $option.disabled
         }
       })
       state.MCItems = items
     })
 
-    watch(() => props.modelValue, (checkedValue) => {
-      state.checkedItems = checkedValue
+    watch(() => props.modelValue, ($checkedValue) => {
+      state.checkedItems = $checkedValue
     })
 
     return { state, onChecked }
@@ -162,14 +162,16 @@ const CheckBox = defineComponent({
 
     console.log('@@@children', children)
 
-    function genMCheckboxItemProps (index) {
+    function genMCheckboxItemProps ($index) {
+      if (!MCItems[$index]) return
+
       return {
-        key: MCItems[index].key,
-        mKey: MCItems[index].key,
-        value: MCItems[index].value,
+        key: MCItems[$index].key,
+        mKey: MCItems[$index].key,
+        value: MCItems[$index].value,
         replaceFields,
-        checked: MCItems[index].checked,
-        disabled: MCItems[index].disabled,
+        checked: MCItems[$index].checked,
+        disabled: MCItems[$index].disabled,
         onChange: onChecked
       }
     }
@@ -185,13 +187,13 @@ const CheckBox = defineComponent({
         {
           children
           &&
-          (children[0].children as VNodeArrayChildren).map((element: any, index) => h(
-            element,
-            genMCheckboxItemProps(index),
+          (children[0].children as VNodeArrayChildren).map(($element: any, $index) => h(
+            $element,
+            genMCheckboxItemProps($index),
             undefined
           ))
           ||
-          MCItems.map((MCItem, index) => h(CheckboxItem, genMCheckboxItemProps(index), MCItem.value))
+          MCItems.map(($checkItem, $index) => h(CheckboxItem, genMCheckboxItemProps($index), $checkItem.value))
         }
       </div>
     )

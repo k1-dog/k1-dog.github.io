@@ -88,10 +88,10 @@ export default defineComponent({
     const preCls = 'miku-card'
     const cardCls = classNames(preCls, { 'iscollapse': collapse })
     return (
-      <div className={cardCls} ref={(cardRef) => this.cardRef = cardRef}>
+      <div className={cardCls} ref={($cardRef) => this.cardRef = $cardRef}>
         {/* 卡片头部结构 */}
-        <div className={`${preCls}__header`} ref={(hRef) => this.headRef = hRef}>
-          <div className={`${preCls}__header--title`} ref={(htRef) => this.headTitleRef = htRef}>
+        <div className={`${preCls}__header`} ref={($hRef) => this.headRef = $hRef}>
+          <div className={`${preCls}__header--title`} ref={($htRef) => this.headTitleRef = $htRef}>
             { _title ? _title() || null : title }
           </div>
           <div className={`${preCls}__header--collapse`}>
@@ -100,8 +100,8 @@ export default defineComponent({
         </div>
         {/* 卡片主体结构 */}
         <div className={`${preCls}__body`}>
-          { imgUrl && <img className={`${preCls}__body--img`} src={imgUrl} ref={(_ir_ => this.imgRef = _ir_)}></img> || null }
-          <div className={`${preCls}__body--content`} ref={(_bodyr_) => this.bodyRef = _bodyr_}>
+          { imgUrl && <img className={`${preCls}__body--img`} src={imgUrl} ref={($imgr => this.imgRef = $imgr)}></img> || null }
+          <div className={`${preCls}__body--content`} ref={($bodyr) => this.bodyRef = $bodyr}>
             { _default && _default() || null }
           </div>
         </div>

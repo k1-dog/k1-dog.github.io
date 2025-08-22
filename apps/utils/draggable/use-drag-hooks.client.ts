@@ -7,167 +7,167 @@ interface M9DraggerState {
 }
 
 // 拖拽事件
-function onDragging (el, dragoffset, finalPosition) {
-  const { top, left, bottom, right, width, height } = el.getBoundingClientRect()
-  const _dragHelperLeft = finalPosition.left
-  const _dragHelperTop = finalPosition.top
+function onDragging ($el, $dragOffset, $finalPosition) {
+  const { top, left, bottom, right, width, height } = $el.getBoundingClientRect()
+  const dragHelperLeft = $finalPosition.left
+  const dragHelperTop = $finalPosition.top
 
-  return { _dragHelperLeft, _dragHelperTop }
+  return { dragHelperLeft, dragHelperTop }
 }
 
-let $m9DragHelper
+let _$m9DragHelper
 
 // 边界检测
-function _isEdge (targetElementRect, dragoffset, direction: 'left' | 'right' | 'top' | 'bottom' = 'left') {
-  const { width: childWidth, height: childHeight, left: lastLeft, top: lastTop } = targetElementRect
+function _isEdge ($targetElementRect, $dragOffset, direction: 'left' | 'right' | 'top' | 'bottom' = 'left') {
+  const { width: childWidth, height: childHeight, left: lastLeft, top: lastTop } = $targetElementRect
 
   if (direction === 'left' || direction === 'right') {
-    let offsetX = dragoffset._x
-    let nextWidth = childWidth
-    let nextLeft = lastLeft
+    let _offsetX = $dragOffset._x
+    let _nextWidth = childWidth
+    let _nextLeft = lastLeft
     if (direction === 'left') {
-      nextWidth = childWidth - offsetX
-      nextLeft += offsetX
+      _nextWidth = childWidth - _offsetX
+      _nextLeft += _offsetX
     } else {
-      nextWidth = childWidth + offsetX
+      _nextWidth = childWidth + _offsetX
     }
     // ! 这里说一下 - 为什么边界值设定为10, 因为我拖拽元素本身宽度就5像素, 所以如果被包裹的元素宽度小于5的话，肯定不合适, 就定成10了
-    if (nextWidth <= 10) {
-      nextWidth = 40
-      offsetX += 40
-      if (direction === 'left') nextLeft -= 40
+    if (_nextWidth <= 10) {
+      _nextWidth = 40
+      _offsetX += 40
+      if (direction === 'left') _nextLeft -= 40
     }
-    return { nextWidth, nextHeight: childHeight,  nextLeft, nextTop: lastTop, offsetX, offsetY: 0 }
+    return { _nextWidth, nextHeight: childHeight,  _nextLeft, nextTop: lastTop, _offsetX, offsetY: 0 }
   } else if (direction === 'top' || direction === 'bottom') {
-    let offsetY = dragoffset._y
-    let nextHeight = childHeight
-    let nextTop = lastTop
+    let _offsetY = $dragOffset._y
+    let _nextHeight = childHeight
+    let _nextTop = lastTop
     if (direction === 'top') {
-      nextHeight = childHeight - offsetY
-      nextTop += offsetY
+      _nextHeight = childHeight - _offsetY
+      _nextTop += _offsetY
     } else {
-      nextHeight = childHeight + offsetY
+      _nextHeight = childHeight + _offsetY
     }
     // ! 这里说一下 - 为什么边界值设定为10, 因为我拖拽元素本身宽度就5像素, 所以如果被包裹的元素宽度小于5的话，肯定不合适, 就定成10了
-    if (nextHeight <= 10) {
-      nextHeight = 40
-      offsetY += 40
-      if (direction === 'top') nextTop -= 40
+    if (_nextHeight <= 10) {
+      _nextHeight = 40
+      _offsetY += 40
+      if (direction === 'top') _nextTop -= 40
     }
-    return { nextWidth: childWidth, nextHeight, nextLeft: lastLeft, nextTop, offsetY, offsetX: 0 }
+    return { nextWidth: childWidth, _nextHeight, nextLeft: lastLeft, _nextTop, _offsetY, offsetX: 0 }
   }
 
   return { nextWidth: childWidth, nextHeight: childHeight,  nextLeft: lastLeft, nextTop: lastTop, offsetY: 0, offsetX: 0 }
 }
 
-function useLeftDragHook (childRef, props, ctx) {
+function useLeftDragHook ($childRef, $props, $ctx) {
   const leftDragRef: Ref<any> = ref(null)
   const leftState = reactive<M9DraggerState>({ left: 0, top: 0 })
   const leftDraggerStyle = computed(() => ({ top: `${leftState.top}px`, left: `${leftState.left + 5}px` }))
 
   function onLeftDraggstart () {
-    $m9DragHelper.onChangeDirection('y')
+    _$m9DragHelper.onChangeDirection('y')
   }
-  function onLeftDragging (el, dragoffset, finalPosition) {
-    const { _dragHelperLeft, _dragHelperTop } = onDragging(el, dragoffset, finalPosition)
+  function onLeftDragging ($el, $dragOffset, $finalPosition) {
+    const { dragHelperLeft, dragHelperTop } = onDragging($el, $dragOffset, $finalPosition)
 
-    $m9DragHelper.onChangePosition({ x: _dragHelperLeft, y: _dragHelperTop, opacity: 1 })
+    _$m9DragHelper.onChangePosition({ x: dragHelperLeft, y: dragHelperTop, opacity: 1 })
   }
 
-  function onLeftDraggend (el, dragoffset, finalPosition) {
-    const childRectInfo = childRef.value.getBoundingClientRect()
-    const nextRectInfo = _isEdge(childRectInfo, dragoffset, 'left')
-    
+  function onLeftDraggend ($el, $dragOffset, $finalPosition) {
+    const childRectInfo = $childRef.value.getBoundingClientRect()
+    const nextRectInfo = _isEdge(childRectInfo, $dragOffset, 'left')
+
     leftState.left = nextRectInfo.nextWidth
-    ctx.emit('dragend', { dragKey: props.dragKey, ...nextRectInfo })
-    $m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
+    $ctx.emit('dragend', { dragKey: $props.dragKey, ...nextRectInfo })
+    _$m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
   }
 
   return { leftDragRef, leftState, leftDraggerStyle, onLeftDraggstart, onLeftDragging, onLeftDraggend }
 }
 
-function useRightDragHook (childRef, props, ctx) {
+function useRightDragHook ($childRef, $props, $ctx) {
   const rightDragRef: Ref<any> = ref(null)
   const rightState = reactive<M9DraggerState>({ left: 0, top: 0 })
   const rightDraggerStyle = computed(() => ({ top: `${rightState.top}px`, left: `${rightState.left - 5}px` }))
 
   function onRightDraggstart () {
-    $m9DragHelper.onChangeDirection('y')
+    _$m9DragHelper.onChangeDirection('y')
   }
-  function onRightDragging (el, dragoffset, finalPosition) {
-    const { _dragHelperLeft, _dragHelperTop } = onDragging(el, dragoffset, finalPosition)
+  function onRightDragging ($el, $dragOffset, $finalPosition) {
+    const { dragHelperLeft, dragHelperTop } = onDragging($el, $dragOffset, $finalPosition)
 
-    $m9DragHelper.onChangePosition({ x: _dragHelperLeft, y: _dragHelperTop, opacity: 1 })
+    _$m9DragHelper.onChangePosition({ x: dragHelperLeft, y: dragHelperTop, opacity: 1 })
   }
 
-  function onRightDraggend (el, dragoffset, finalPosition) {
-    const childRectInfo = childRef.value.getBoundingClientRect()
-    const nextRectInfo = _isEdge(childRectInfo, dragoffset, 'right')
-    
+  function onRightDraggend ($el, $dragOffset, $finalPosition) {
+    const childRectInfo = $childRef.value.getBoundingClientRect()
+    const nextRectInfo = _isEdge(childRectInfo, $dragOffset, 'right')
+
     rightState.left = nextRectInfo.nextWidth
-    ctx.emit('dragend', { dragKey: props.dragKey, ...nextRectInfo })
-    $m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
+    $ctx.emit('dragend', { dragKey: $props.dragKey, ...nextRectInfo })
+    _$m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
   }
 
   return { rightDragRef, rightState, rightDraggerStyle, onRightDragging, onRightDraggend, onRightDraggstart }
 }
 
-function useTopDragHook (childRef, props, ctx) {
+function useTopDragHook ($childRef, $props, $ctx) {
   const topDragRef: Ref<any> = ref(null)
   const topState = reactive<M9DraggerState>({ left: 0, top: 0 })
   const topDraggerStyle = computed(() => ({ top: `${topState.top + 5}px`, left: `${topState.left}px` }))
 
   function onTopDraggstart () {
-    $m9DragHelper.onChangeDirection('x')
+    _$m9DragHelper.onChangeDirection('x')
   }
 
-  function onTopDragging (el, dragoffset, finalPosition) {
-    const { _dragHelperLeft, _dragHelperTop } = onDragging(el, dragoffset, finalPosition)
+  function onTopDragging ($el, $dragOffset, $finalPosition) {
+    const { dragHelperLeft, dragHelperTop } = onDragging($el, $dragOffset, $finalPosition)
 
-    $m9DragHelper.onChangePosition({ x: _dragHelperLeft, y: _dragHelperTop, opacity: 1 })
+    _$m9DragHelper.onChangePosition({ x: dragHelperLeft, y: dragHelperTop, opacity: 1 })
   }
 
-  function onTopDraggend (el, dragoffset, finalPosition) {
-    const childRectInfo = childRef.value.getBoundingClientRect()
-    const nextRectInfo = _isEdge(childRectInfo, dragoffset, 'top')
-    
+  function onTopDraggend ($el, $dragOffset, $finalPosition) {
+    const childRectInfo = $childRef.value.getBoundingClientRect()
+    const nextRectInfo = _isEdge(childRectInfo, $dragOffset, 'top')
+
     topState.top = nextRectInfo.nextHeight
-    ctx.emit('dragend', { dragKey: props.dragKey, ...nextRectInfo })
-    $m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
+    $ctx.emit('dragend', { dragKey: $props.dragKey, ...nextRectInfo })
+    _$m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
   }
 
   return { topDragRef, topState, topDraggerStyle, onTopDragging, onTopDraggend, onTopDraggstart }
 }
 
-function useBottomDragHook (childRef, props, ctx) {
+function useBottomDragHook ($childRef, $props, $ctx) {
   const bottomDragRef: Ref<any> = ref(null)
   const bottomState = reactive<M9DraggerState>({ left: 0, top: 0 })
   const bottomDraggerStyle = computed(() => ({ top: `${bottomState.top - 5}px`, left: `${bottomState.left}px` }))
 
   function onBottomDraggstart () {
-    $m9DragHelper.onChangeDirection('x')
+    _$m9DragHelper.onChangeDirection('x')
   }
 
-  function onBottomDragging (el, dragoffset, finalPosition) {
-    const { _dragHelperLeft, _dragHelperTop } = onDragging(el, dragoffset, finalPosition)
+  function onBottomDragging ($el, $dragOffset, $finalPosition) {
+    const { dragHelperLeft, dragHelperTop } = onDragging($el, $dragOffset, $finalPosition)
 
-    $m9DragHelper.onChangePosition({ x: _dragHelperLeft, y: _dragHelperTop, opacity: 1 })
+    _$m9DragHelper.onChangePosition({ x: dragHelperLeft, y: dragHelperTop, opacity: 1 })
   }
 
-  function onBottomDraggend (el, dragoffset, finalPosition) {
-    const childRectInfo = childRef.value.getBoundingClientRect()
-    const nextRectInfo = _isEdge(childRectInfo, dragoffset, 'bottom')
-    
+  function onBottomDraggend ($el, $dragOffset, $finalPosition) {
+    const childRectInfo = $childRef.value.getBoundingClientRect()
+    const nextRectInfo = _isEdge(childRectInfo, $dragOffset, 'bottom')
+
     bottomState.top = nextRectInfo.nextHeight
-    ctx.emit('dragend', { dragKey: props.dragKey, ...nextRectInfo })
-    $m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
+    $ctx.emit('dragend', { dragKey: $props.dragKey, ...nextRectInfo })
+    _$m9DragHelper.onChangePosition({ x: 0, y: 0, opacity: 0 })
   }
 
   return { bottomDragRef, bottomState, bottomDraggerStyle, onBottomDragging, onBottomDraggend, onBottomDraggstart }
 }
 
 export default function useM9Dragger ($props, $ctx) {
-  $m9DragHelper = M9DragHelper({ direction: 'x' })
+  _$m9DragHelper = M9DragHelper({ direction: 'x' })
   const childRef = ref()
   const { leftDragRef, leftState, leftDraggerStyle, onLeftDragging, onLeftDraggend, onLeftDraggstart } = useLeftDragHook(childRef, $props, $ctx)
   const { rightDragRef, rightState, rightDraggerStyle, onRightDragging, onRightDraggend, onRightDraggstart } = useRightDragHook(childRef, $props, $ctx)

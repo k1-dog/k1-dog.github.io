@@ -81,9 +81,9 @@ export type M9ZzFormState<ZKeys0> = {
   [ZTK in keyof ZKeys0]?: { initValue: any; isRequired: boolean; };
 }
 
-type M9ZzFinalValue<F4> = {
-  [FK in keyof F4]?: any;
-}
+// type M9ZzFinalValue<F4> = {
+//   [FK in keyof F4]?: any;
+// }
 
 export interface M9ZzFormPropsT<ZKeys0> {
   formModel: {

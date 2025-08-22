@@ -5,8 +5,8 @@ $miku-btn-preCls : "#{$m9-preCls}-btn";
 .#{$miku-btn-preCls} {
     // 按钮内部文字溢出样式
     &__text {
-      // @include m9-text-overflow();
       color: inherit;
+      // @include m9-text-overflow();
     }
     
     /* 外部轮廓结构样式 */
@@ -40,9 +40,6 @@ $miku-btn-preCls : "#{$m9-preCls}-btn";
     // 边距结构样式
     margin: 0;
     padding: 0.3rem;
-
-    // 排布布局样式
-    @include m9-flex-center('inline');
 
     /* 内部内容样式 */
     cursor: pointer;
@@ -103,18 +100,18 @@ $miku-btn-preCls : "#{$m9-preCls}-btn";
 
     $circle_cls: #{&}-shape-circle;
     &-size-small {
-        @include btn-size-func('small', $btn);
         &#{$circle_cls} { width: 1.5rem; height: 1.5rem; }
+        @include btn-size-func('small', $btn);
     }
 
     &-size-medium {
-        @include btn-size-func('medium', $btn);
         &#{$circle_cls} { width: 2rem; height: 2rem; }
+        @include btn-size-func('medium', $btn);
     }
 
     &-size-large {
-        @include btn-size-func('large', $btn);
         &#{$circle_cls} { width: 2.5rem; height: 2.5rem; }
+        @include btn-size-func('large', $btn);
     }
 
     &-shape-circle {
@@ -208,6 +205,9 @@ $miku-btn-preCls : "#{$m9-preCls}-btn";
         }
       }
     }
+
+    // 排布布局样式
+    @include m9-flex-center('inline');
 }
 
 @keyframes k1-layer-rotate {

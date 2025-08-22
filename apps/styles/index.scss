@@ -1,13 +1,13 @@
 @import './color-panel.scss';
 
 @mixin m9-flex-center ($style: 'inline') {
+  align-items: center;
+  justify-content: center;
   @if ($style == 'inline') {
     display: inline-flex;
   } @else {
     display: flex;
   }
-  align-items: center;
-  justify-content: center;
 }
 @mixin m9-position-center($width: null, $height: null) {
   position: absolute;

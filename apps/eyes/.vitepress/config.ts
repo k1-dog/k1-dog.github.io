@@ -63,6 +63,7 @@ export default defineConfig({
     css: {
       preprocessorOptions: {
         scss: {
+          quietDeps: true,
           // additionalData: '@import "/packages/style.scss";' // !~~靠 -少个分号都不行 看来这是配置的 scss 语法命令, 较严格
         }
       }

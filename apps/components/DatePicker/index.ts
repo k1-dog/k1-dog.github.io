@@ -1,7 +1,6 @@
 // (-*^*-) 小美九 |> -<时间>-选择器 图稿
 
 import { Dayjs } from 'dayjs'
-import DatePicker from './DatePicker'
 
 // (----------------------🐹🐹🐹-----------------------)  => 日期头部 SFC
 // |      < ❀❀   ___  2022年 06月 28日  ___   ❀❀ >     |
@@ -59,7 +58,6 @@ export interface DateBaseProps {
   MD: DateInputT
 }
 
-const MikuDatePicker = DatePicker
 // MikuDatePicker.TimePicker = TimePicker
 
-export default MikuDatePicker
+export { default } from './DatePicker'

@@ -9,10 +9,10 @@ import { M9MsgProps, M9MessageInstanceT, M9MessageInsListT } from './Type'
 // const m9MsgInstance_2 = M9Message.warning('警告!')
 // m9MsgInstance_1.$destroy()
 
-export default (function M9MessageFunction () {
+export default (function M9MessageDispatcher () {
   let messageInstanceList: M9MessageInsListT = []
 
-  let _T800: NodeJS.Timeout | null | undefined = null || undefined
+  let _T800: NodeJS.Timeout | null = null
 
   const getMessageID = (function () {
     let id = 0
@@ -22,7 +22,7 @@ export default (function M9MessageFunction () {
     }
   })()
 
-  function M9MessageControllerFn (props: M9MsgProps) {
+  function MsgCaller (props: M9MsgProps) {
     _T800 = setTimeout(() => show(props), 0)
   }
 
@@ -59,7 +59,7 @@ export default (function M9MessageFunction () {
   function show (props: M9MsgProps, type?: M9MsgProps['type']) {
     if (_T800) {
       clearTimeout(_T800)
-      _T800 = null || undefined
+      _T800 = null
     }
 
     if (!props) return
@@ -89,11 +89,11 @@ export default (function M9MessageFunction () {
       }
 
       clearTimeout(_T800!)
-      _T800 = null || undefined
+      _T800 = null
     }, 0)
   }
 
-  M9MessageControllerFn.success = function (customProps: any) {
+  MsgCaller.success = function (customProps: any) {
     if (typeof customProps === 'string') {
       customProps = { text: customProps }
     }
@@ -101,7 +101,7 @@ export default (function M9MessageFunction () {
     show(customProps, 'success')
   }
 
-  M9MessageControllerFn.warning = function (customProps: any) {
+  MsgCaller.warning = function (customProps: any) {
     if (typeof customProps === 'string') {
       customProps = { text: customProps }
     }
@@ -109,7 +109,7 @@ export default (function M9MessageFunction () {
     show(customProps, 'warning')
   }
 
-  M9MessageControllerFn.error = function (customProps: any) {
+  MsgCaller.error = function (customProps: any) {
     if (typeof customProps === 'string') {
       customProps = { text: customProps }
     }
@@ -117,7 +117,7 @@ export default (function M9MessageFunction () {
     show(customProps, 'error')
   }
 
-  M9MessageControllerFn.info = function (customProps: any) {
+  MsgCaller.info = function (customProps: any) {
     if (typeof customProps === 'string') {
       customProps = { text: customProps }
     }
@@ -125,5 +125,5 @@ export default (function M9MessageFunction () {
     show(customProps, 'info')
   }
 
-  return M9MessageControllerFn
+  return MsgCaller
 })()

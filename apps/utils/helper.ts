@@ -1,154 +1,150 @@
-interface Unique {
+interface IUnique {
   <U>(arr: Array<U>): U[]
 }
 
-export const unique: Unique = function <U>(arr: U[]): U[] {
-  let Arr: U[]
-  Arr = Array.from(new Set(arr))
-  return Arr
+export const unique: IUnique = function <U>($arr: U[]): U[] {
+  let _Arr: U[]
+  _Arr = Array.from(new Set($arr))
+  return _Arr
 }
 
-interface isNumber {
+interface IIsNumber {
   (x: any): boolean
 }
 
-export const isM9Number: isNumber = (N) => {
-  let reset: number = 0,
-    flag: boolean = false
-  if (typeof N === 'string') {
-    reset = Number(N)
-  } else if (typeof N === 'number') {
-    reset = N
+export const isM9Number: IIsNumber = ($N) => {
+  let _reset: number = 0,
+    _flag: boolean = false
+  if (typeof $N === 'string') {
+    _reset = Number($N)
+  } else if (typeof $N === 'number') {
+    _reset = $N
   }
-  if (!isNaN(reset)) {
-    flag = true
+  if (!isNaN(_reset)) {
+    _flag = true
   }
-  return flag
+  return _flag
 }
 
 interface MikuFileReader {
   (_OF_: Blob): FileReader
 }
 
-export const createFileReader: MikuFileReader = (_OF_: Blob) => {
+export const createFileReader: MikuFileReader = ($_OFile_: Blob) => {
   const reader = new FileReader()
 
-  reader.readAsDataURL(_OF_)
+  reader.readAsDataURL($_OFile_)
 
   return reader
 }
 
 export const toDrawIMG = (
-  IMG: HTMLImageElement,
+  $IMG: HTMLImageElement,
   /*{sx = 0, sy = 0, sw = 0, sh = 0} = {},
   {ox = 0, oy = 0} = {},*/
-  _W_: number,
-  _H_: number
+  $_W_: number,
+  $_H_: number
 ) => {
   const canvas = document.createElement('canvas')
 
-  let ctx: CanvasRenderingContext2D
+  let _ctx: CanvasRenderingContext2D
 
   function _getPen() {
-    let ctx = canvas.getContext('2d')!,
-      CH = _H_,
-      CW = _W_
+    let _ctx = canvas.getContext('2d')!,
+      _CH = $_H_,
+      _CW = $_W_
 
-    let devicePixelRatio = window.devicePixelRatio || 1,
-      backingStoreRatio = 1,
-      ratio = devicePixelRatio / backingStoreRatio
+    let _devicePixelRatio = window.devicePixelRatio || 1,
+      _backingStoreRatio = 1,
+      _ratio = _devicePixelRatio / _backingStoreRatio
 
-    canvas.width = CW * ratio * 25
+    canvas.width = _CW * _ratio * 25
 
-    canvas.height = CH * ratio * 25
+    canvas.height = _CH * _ratio * 25
 
-    canvas.style.width = CW + 'px'
+    canvas.style.width = _CW + 'px'
 
-    canvas.style.height = CH + 'px'
+    canvas.style.height = _CH + 'px'
 
-    ctx.scale(ratio * 25, ratio * 25)
+    _ctx.scale(_ratio * 25, _ratio * 25)
 
-    return ctx
+    return _ctx
   }
 
-  ctx = _getPen()
+  _ctx = _getPen()
 
   // ctx.drawImage(IMG, sx, sy, sw, sh, ox, oy, _W_, _H_);
 
-  ctx.drawImage(IMG, 0, 0, _W_, _H_)
+  _ctx.drawImage($IMG, 0, 0, $_W_, $_H_)
 
   const NEW_BASE64_URL = canvas.toDataURL('image/jpeg', 0.8)
 
   return NEW_BASE64_URL
 }
 
-export const ResizeIMG = (OResult: string | ArrayBuffer | null, expectSize: number = 100) => {
+type TImgBaseStat = { IMG: HTMLImageElement; NW: number; NH: number }
+
+export const ResizeIMG = ($OResult: string | ArrayBuffer | null, $expectSize: number = 100) => {
   const IMG = new Image()
 
-  IMG.src = OResult as string
+  IMG.src = $OResult as string
 
-  const _compress_ = new Promise((resolve) => {
+  const compress_: Promise<TImgBaseStat> = new Promise(($resolve) => {
     IMG.onload = () => {
       const OW = IMG.width,
         OH = IMG.height
 
       const ratio = OW / OH,
-        ML = expectSize
+        ML = $expectSize
 
-      let NH: number = OH,
-        NW: number = OW
+      let _NH: number = OH,
+        _NW: number = OW
 
       if (OW > ML || OH > ML) {
         if (OW > OH) {
-          NW = ML
-          NH = ML / ratio
+          _NW = ML
+          _NH = ML / ratio
         } else {
-          NW = ML * ratio
-          NH = ML
+          _NW = ML * ratio
+          _NH = ML
         }
       }
 
-      const IMGStat: object = { IMG, NW, NH }
+      const IMGStat = { IMG, NW: _NW, NH: _NH }
 
-      resolve(IMGStat)
+      $resolve(IMGStat)
     }
   })
 
-  return _compress_
+  return compress_
 }
 
-type resizeIMGProps = {
-  IMG: HTMLImageElement
-  NW: number
-  NH: number
-}
-
-type convertIMGBase64Return = {
+type TConvertIMGBase64Return = {
   uri: string
   width: number
   height: number
 }
 
 interface MikuBase64 {
-  (_f_: Blob, _es_?: number): Promise<convertIMGBase64Return>
+  (_f_: Blob, _es_?: number): Promise<TConvertIMGBase64Return>
 }
 
-export const _getBase64OfMiku_: MikuBase64 = (file, ExpectedSize = 100) => {
-  return new Promise((resolve, reject) => {
-    const reader = createFileReader(file)
+export const getBase64OfMiku_: MikuBase64 = ($file, $ExpectedSize = 100) => {
+  return new Promise(($resolve, $reject) => {
+    const reader = createFileReader($file)
 
-    reader.onload = (FR_EV) => {
-      ResizeIMG(FR_EV.target!.result, ExpectedSize).then((IMG) => {
-        const { IMG: img, NW, NH } = IMG as resizeIMGProps
+    reader.onload = ($FR_EV) => {
+      ResizeIMG($FR_EV.target!.result, $ExpectedSize).then(($IMG) => {
+        const { IMG: img, NW, NH } = $IMG
 
-        resolve({
+        $resolve({
           uri: toDrawIMG(img, /*undefined, undefined,*/ NW, NH),
           width: NW,
           height: NH
         })
       })
-    } // ts 非空断言 !
+    }
 
-    reader.onerror = (error) => reject(error)
+    reader.onerror = ($error) => $reject($error)
   })
 }

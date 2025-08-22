@@ -72,13 +72,13 @@ export default defineComponent({
   },
   setup (props, ctx) {
     const buttonEle: HTMLButtonElement | null = null
-    const onHandleClick: Function = (e: PointerEvent) => {
+    const onHandleClick: Function = ($e: PointerEvent) => {
       // 不加这行阻止冒泡的话, 这个按钮点击事件会连续触发两次
       // 奇怪的是 并不是这里的点击事件触发两次, 而是外部监听这个点击事件的回调事件会连续两次执行, 搞不懂
-      e && e.stopPropagation()
-      
+      $e && $e.stopPropagation()
+
       // console.log('🚀 ~ Button::setup ~ e:', e)
-      ctx.emit('click', e)
+      ctx.emit('click', $e)
     }
     return {
       buttonEle,
@@ -98,17 +98,17 @@ export default defineComponent({
       [`${preCls}-loading`]: loading
     }
     const { class: customClass = {} } = this.$attrs as { class: object }
-    const _OutlineCls_ = classNames(preCls, `${preCls}--outline`, btnCls, customClass)
-    const _InnerCls_ = `${preCls}--btn`
+    const OutlineCls_ = classNames(preCls, `${preCls}--outline`, btnCls, customClass)
+    const InnerCls_ = `${preCls}--btn`
 
     const children = this.$slots.default!()
-    
+
     return (
       <MRipple>
-        <div className={_OutlineCls_}>
+        <div className={OutlineCls_}>
           <button
-            ref={(r) => { this.buttonEle = r }}
-            className={_InnerCls_}
+            ref={($r) => { this.buttonEle = $r }}
+            className={InnerCls_}
             disabled={disabled}
             onClick={onHandleClick}
           >

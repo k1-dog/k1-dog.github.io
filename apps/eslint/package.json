@@ -1,0 +1,30 @@
+{
+  "name": "@k1/xelnaga",
+  "version": "0.0.1",
+  "description": "Xelnaga for global standard lint",
+  "type": "commonjs",
+  "main": "./dist/xelnaga.js",
+  "types": "./dist/xelnaga.d.ts",
+  "files": ["tsconfig.json", "package.json"],
+  "scripts": {
+    "build": "tsc --project ./tsconfig.json",
+    "init": "npx eslint --init",
+    "fix": "npx eslint --fix",
+    "lint": "npx eslint ../apps"
+  },
+  "keywords": [
+    "World - Xelnaga",
+    "eslint"
+  ],
+  "author": "naTsuM1",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/utils": "^7.18.0",
+    "eslint": "^8.57.1"
+  }
+}

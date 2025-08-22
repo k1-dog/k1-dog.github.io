@@ -66,9 +66,9 @@ function M9DragHelperCtor () {
   // var helper_div_root: HTMLDivElement = document.createElement('div')
   // ! 这里试着用 createApp 创造一个 dragHelper 组件唯一实例, 然后 mount "#app" 挂载报错, 提示已经有一个实例挂载到 #app下边了 ...
   var one_m9DragHelper
-  return (props, helper_div_root: HTMLDivElement = document.createElement('div')) => one_m9DragHelper = one_m9DragHelper || createApp(M9DragHelperComponent, {
+  return ($props, helper_div_root: HTMLDivElement = document.createElement('div')) => one_m9DragHelper = one_m9DragHelper || createApp(M9DragHelperComponent, {
     root: helper_div_root,
-    direction: props.direction
+    direction: $props.direction
   }).mount(helper_div_root)
 }
 export default M9DragHelperCtor()

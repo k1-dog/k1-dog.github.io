@@ -42,7 +42,7 @@ export default defineComponent({
   },
   setup () {
     const vm = getCurrentInstance()
-    let $el: RendererNode | null | undefined = null
+    let _$el: RendererNode | null | undefined = null
     const state = reactive({
       rippleBuffer: [],
       rippleRoundKey: 0
@@ -68,10 +68,12 @@ export default defineComponent({
     }
   
     function handleMouseUp <Y,>(e: rippleSpanWrapHTMLProps<UseHTMLEleT<Y>>['onMouseUpE']): void {
-      let _t1: number | undefined = window.setTimeout(() => {
+      let _t1: number | null = window.setTimeout(() => {
         onUnBobble()
-        window.clearTimeout(_t1)
-        _t1 = null || undefined
+        if (_t1) {
+          window.clearTimeout(_t1)
+          _t1 = null
+        }
       }, 500)
     }
   
@@ -86,8 +88,8 @@ export default defineComponent({
       const { clientX, clientY } = e
   
       // 再取出__<[波纹容器]>__相对于整个页面的绝对位置
-      const rectProperty = $el
-        ? ($el as HTMLElement).getBoundingClientRect()
+      const rectProperty = _$el
+        ? (_$el as HTMLElement).getBoundingClientRect()
         : {
             left: 0,
             right: 0,
@@ -98,27 +100,27 @@ export default defineComponent({
           }
   
       // 相减--求得--波纹距离容器的相对位置--也就是在容器中的圆心坐标
-      let rippleX: number, rippleY: number, circleW: number, circleH: number, rippleRadius: number, pos: MRippleProps['pos']
+      let _rippleX, _rippleY, _circleW, _circleH, _rippleRadius, _pos
       // 为了完全包裹--波纹外容器, 所绘制的圆类型::外切圆
       if (clientX === 0 && clientY === 0) {
         // ~#__元素被点击的位置, 恰好在页面_<左上角原点处>_
-        rippleX = Math.round(rectProperty['width'] / 2)
-        rippleY = Math.round(rectProperty['height'] / 2)
-        circleW = rippleX
-        circleH = rippleY
+        _rippleX = Math.round(rectProperty['width'] / 2)
+        _rippleY = Math.round(rectProperty['height'] / 2)
+        _circleW = _rippleX
+        _circleH = _rippleY
       } else {
         // ~#__否则, 两个绝对位置相减
-        rippleX = clientX - rectProperty['left']
-        rippleY = clientY - rectProperty['top']
-        circleW = Math.max(Math.abs(rippleX), Math.abs(clientX - rectProperty['right']))
-        circleH = Math.max(Math.abs(rippleY), Math.abs(clientY - rectProperty['bottom']))
+        _rippleX = clientX - rectProperty['left']
+        _rippleY = clientY - rectProperty['top']
+        _circleW = Math.max(Math.abs(_rippleX), Math.abs(clientX - rectProperty['right']))
+        _circleH = Math.max(Math.abs(_rippleY), Math.abs(clientY - rectProperty['bottom']))
       }
   
-      rippleRadius = Math.sqrt(Math.pow(circleW, 2) + Math.pow(circleH, 2))
-      pos = { x: rippleX - rippleRadius, y: rippleY - rippleRadius }
+      _rippleRadius = Math.sqrt(Math.pow(_circleW, 2) + Math.pow(_circleH, 2))
+      _pos = { x: _rippleX - _rippleRadius, y: _rippleY - _rippleRadius }
       // 计算波纹属性 (#__圆__Attributes)
-      const RippleSize = rippleRadius * 2
-      const RippleCircleAttrs = { pos, size: RippleSize }
+      const RippleSize = _rippleRadius * 2
+      const RippleCircleAttrs = { pos: _pos, size: RippleSize }
       return RippleCircleAttrs
     }
   
@@ -136,7 +138,7 @@ export default defineComponent({
       return void 0
     }
 
-    onMounted(() => { $el = vm?.vnode.el })
+    onMounted(() => { _$el = vm?.vnode?.el })
 
     return {
       state,

@@ -3,27 +3,27 @@
   "allowImportingTsExtensions": true,
   "compilerOptions": {
     "baseUrl": ".",
-    "target": "ES2015",
-    "module": "ESNext",
     "rootDir": "apps",
-    "outDir": "./m9-d-ts",
+    "outDir": "./m9-bundle",
+    "target": "ES2015",
+    "module": "node16",
     "allowJs": false,
     "declaration": true,
     "declarationDir": "./m9-d-ts",
-    "emitDeclarationOnly": true, // 只生成声明文件，而不会生成js文件
-    "strictPropertyInitialization": false,
+    "emitDeclarationOnly": false, // 只生成声明文件，而不会生成js文件
     // "paths": { "@/*": ["src/*"] },
-    "types": ["node", "vite/client"], // "module"
+    "types": ["node", "vite/client"],
     "jsx": "preserve",
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "node16",
+    "resolveJsonModule": true,
     "noImplicitAny": false, // 是否在表达式和声明上有隐含的any类型时报错
     "lib": ["esnext", "dom"]
   },
   "include": [
-    "apps/components", "apps/styles", "apps/utils", "apps/v0",
+    "apps/components", "apps/styles", "apps/utils", "apps/v0", "apps/eslint",
     "./miku-types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]

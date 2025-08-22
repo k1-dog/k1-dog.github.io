@@ -7,3 +7,5 @@ node_modules/
 /apps/eyes/.vitepress/dist
 
 /apps/eyes/.vitepress/cache
+
+/apps/eslint/dist

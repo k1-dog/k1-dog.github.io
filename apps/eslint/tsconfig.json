@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "./dist",
+    "target": "ES2015",
+    "module": "node16",
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": false, // 只生成声明文件，而不会生成js文件
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node16",
+    // "allowSyntheticDefaultImports": true, // 允许无默认导出的库进行默认导入
+    "noImplicitAny": false, // 是否在表达式和声明上有隐含的any类型时报错
+  },
+  "include": ["xelnaga.ts", "rules"],
+  "exclude": ["node_modules","dist"]
+}

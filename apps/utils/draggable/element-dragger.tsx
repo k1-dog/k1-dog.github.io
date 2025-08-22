@@ -1,5 +1,5 @@
 import { defineComponent, h } from "vue"
-import useM9Dragger from './use-drag-hooks'
+import useM9Dragger from './use-drag-hooks.client'
 
 
 export default defineComponent({
@@ -37,19 +37,19 @@ export default defineComponent({
     return (
       <div className={className} style={{"position": "relative", ...style as object}}>
         {
-          h(childrenVnode[0], { ref: (_childR_: any) => this.childRef = _childR_ }, undefined)
+          h(childrenVnode[0], { ref: ($_childR_: any) => this.childRef = $_childR_ }, undefined)
         }
         {
-          isRight && <div className="m9-dragger right" style={{ ...rightDraggerStyle }} ref={(_rightDr_: any) => this.rightDragRef = _rightDr_}></div>
+          isRight && <div className="m9-dragger right" style={{ ...rightDraggerStyle }} ref={($_rightDr_: any) => this.rightDragRef = $_rightDr_}></div>
         }
         {
-          isLeft && <div className="m9-dragger left" style={{ ...leftDraggerStyle }} ref={(_leftDr_: any) => this.leftDragRef = _leftDr_}></div>
+          isLeft && <div className="m9-dragger left" style={{ ...leftDraggerStyle }} ref={($_leftDr_: any) => this.leftDragRef = $_leftDr_}></div>
         }
         {
-          isTop && <div className="m9-dragger top" style={{ ...topDraggerStyle }} ref={(_topDr_: any) => this.topDragRef = _topDr_}></div>
+          isTop && <div className="m9-dragger top" style={{ ...topDraggerStyle }} ref={($_topDr_: any) => this.topDragRef = $_topDr_}></div>
         }
         {
-          isBottom && <div className="m9-dragger bottom" style={{ ...bottomDraggerStyle }} ref={(_bottomDr_: any) => this.bottomDragRef = _bottomDr_}></div>
+          isBottom && <div className="m9-dragger bottom" style={{ ...bottomDraggerStyle }} ref={($_bottomDr_: any) => this.bottomDragRef = $_bottomDr_}></div>
         }
       </div>
     )

@@ -1,0 +1,14 @@
+{
+  "name": "@k1/http",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "the Http-Connection-System named as Kala for SC2",
+  "main": "kala.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["SC2", "Kala", "http", "Apis-Apply"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0"
+}

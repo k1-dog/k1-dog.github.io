@@ -119,7 +119,7 @@ export default class M9Tooltip {
       this._tooltipElement.style.top = $top - toolH - 10 + 'px'
       this._tooltipElement.style.opacity = '1'
       window.clearTimeout(_TxTooltip as number)
-      _TxTooltip = null || undefined
+      _TxTooltip = null
     })
     
   }

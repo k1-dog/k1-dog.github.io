@@ -47,8 +47,8 @@ export default defineComponent({
   },
   emits: ['change'], // (MKey: PMCheckItemProps['key__']) => void
   setup (props, ctx) {
-    function onItemChange (k) {
-      ctx.emit('change', k)
+    function onItemChange ($k) {
+      ctx.emit('change', $k)
     }
 
     return { onItemChange }
@@ -74,7 +74,7 @@ export default defineComponent({
       <div className={itemPreCls}>
         <div className={itemCheckboxExtraCls}>
           <input type="checkbox" className={`${itemCheckboxCls}__inner`} id={`m9-checkbox-${mKey}`}></input>
-          <label for={`m9-checkbox-${mKey}`} className={`${itemCheckboxCls}__label`} onClick={(e) => { onItemChange(mKey) }}>
+          <label for={`m9-checkbox-${mKey}`} className={`${itemCheckboxCls}__label`} onClick={($e) => { onItemChange(mKey) }}>
           {
             disabled
             &&
@@ -83,7 +83,7 @@ export default defineComponent({
             <M9Icon icon="doraamon" style="width: 100%; height: 100%;"/>
           }
           </label>
-          <div className={`${itemCheckboxCls}__input`} onClick={(e) => { onItemChange(mKey) }}>
+          <div className={`${itemCheckboxCls}__input`} onClick={($e) => { onItemChange(mKey) }}>
           {
             [
               isHalfChecked && <div style="width: 80%; height: 2px; background-color: #ffffff; "></div>,

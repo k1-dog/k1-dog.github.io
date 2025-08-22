@@ -88,7 +88,7 @@ export function makeFormModel(formFieldNames) {
             <div class='flex flex-wrap'>
               {couldShowsOf_6OPT.map((eachOption) => (
                 <div class='inline-flex align-items-center w-6'>
-                  {<img width={28} src={src}></img> || null}
+                  {<img width={28} src={src} />}
                   <span
                     class='pl-2 text-overflow-ellipsis w-12 overflow-hidden border-round-lg bg-bluegray-700 text-indigo-100'
                     title={eachOption.name}>

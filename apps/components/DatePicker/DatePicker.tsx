@@ -61,24 +61,24 @@ export default defineComponent({
   emits: ['datePick', 'update:modelValue'], // MikuDateProps['datePick']
   setup (props, ctx) {
     // * 每次调用--日期组件->必定最先执行的操作::获取当前_YY-MM-DD_时间
-    function getYYMMDDFromNow (now: DateNow): DateBaseProps {
-      const Y = now.year()
-      const M = now.month() + 1
-      const D = now.date()
-      const _now01 = {
+    function getYYMMDDFromNow ($now: DateNow): DateBaseProps {
+      const Y = $now.year()
+      const M = $now.month() + 1
+      const D = $now.date()
+      const now01 = {
         MY: Y,
         MM: M,
         MD: D
       }
 
-      return _now01
+      return now01
     }
 
     const now = dayjs()
     const Y_M_D = getYYMMDDFromNow(now)
 
-    watch(() => props.modelValue, (nowDateString) => {
-      const dayjsNow = dayjs(nowDateString)
+    watch(() => props.modelValue, ($nowDateString) => {
+      const dayjsNow = dayjs($nowDateString)
       const nowArray = dayjsNow.format('YYYY-MM-DD').split('-')
       state.now = { MY: Number(nowArray[0]), MM: Number(nowArray[1]), MD: Number(nowArray[2]) }
       state.currentDate = dayjsNow
@@ -93,16 +93,16 @@ export default defineComponent({
 
     // 预处理--提前备好<==>[-实例化-]的各个小组件
     function prepareCompos (
-      onUpdateDate: (updateNow: DateBaseProps) => void,
-      mode: DateModeT,
-      Y_M_D: DateBaseProps
+      $onUpdateDate: (updateNow: DateBaseProps) => void,
+      $mode: DateModeT,
+      $Y_M_D: DateBaseProps
     ): MIKU_DATE_COMPOS {
 
-      const key = Object.values(Y_M_D).join('-')
+      const key = Object.values($Y_M_D).join('-')
       // key={key + '@H'}
-      const head: DateCompoInstance<DHType> = <DateHead key={key + '@H'} { ...Y_M_D } onNotifyUpdate={onUpdateDate}></DateHead>
+      const head: DateCompoInstance<DHType> = <DateHead key={key + '@H'} { ...$Y_M_D } onNotifyUpdate={$onUpdateDate}></DateHead>
       // key={key + '@B'}
-      const body: DateCompoInstance<DBType> = <DateBody key={key + '@B'} { ...Y_M_D } mode={mode} onNotifyUpdate={onUpdateDate}></DateBody>
+      const body: DateCompoInstance<DBType> = <DateBody key={key + '@B'} { ...$Y_M_D } mode={$mode} onNotifyUpdate={$onUpdateDate}></DateBody>
       // key={key + '@F'}
       const foot: DateCompoInstance<DFType> = <DateFoot key={key + '@F'}></DateFoot>
 
@@ -110,41 +110,41 @@ export default defineComponent({
       return miku_date_compos
     }
 
-    function onSwitch5HowDatePicker (visable: boolean) {
-      state.M5howDatePicker = visable
+    function onSwitch5HowDatePicker ($visable: boolean) {
+      state.M5howDatePicker = $visable
     }
 
-    function dateConvert (DateInput: number) {
+    function dateConvert ($DateInput: number) {
       const { currentDate, dateMode } = state
-  
-      let outputDate
-  
+
+      let _outputDate
+
       switch (dateMode) {
         case 'Year':
-          const pickY = DateInput
-          outputDate = currentDate.set('y', pickY)
+          const pickY = $DateInput
+          _outputDate = currentDate.set('y', pickY)
           break
         case 'Month':
-          const pickM = DateInput - 1
-          outputDate = currentDate.set('M', pickM)
+          const pickM = $DateInput - 1
+          _outputDate = currentDate.set('M', pickM)
           break
         case 'Day':
-          const pickD = DateInput
-          outputDate = currentDate.set('D', pickD)
+          const pickD = $DateInput
+          _outputDate = currentDate.set('D', pickD)
           break
         default:
-          outputDate = currentDate
+          _outputDate = currentDate
           break
       }
-  
-      return outputDate
+
+      return _outputDate
     }
 
-    function onUpdateDate (updateNow: DateBaseProps) {
-      const joinNow = Object.values(updateNow).join('-')
-      const _dayjs = dayjs(joinNow)
-      state.now = updateNow
-      state.currentDate = _dayjs
+    function onUpdateDate ($updateNow: DateBaseProps) {
+      const joinNow = Object.values($updateNow).join('-')
+      const dateFromDayjs = dayjs(joinNow)
+      state.now = $updateNow
+      state.currentDate = dateFromDayjs
       ctx.emit('update:modelValue', joinNow)
     }
 
@@ -174,7 +174,7 @@ export default defineComponent({
         {
           {
             default: () => ReferInputEntryJSX,
-            content: () => <div className={MikuDatePreCls}>{compos.map((compo) => compo)}</div>
+            content: () => <div className={MikuDatePreCls}>{compos.map(($compo) => $compo)}</div>
           }
         }
       </Popover>
