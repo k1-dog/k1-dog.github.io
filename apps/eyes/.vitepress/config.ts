@@ -9,7 +9,7 @@ export default defineConfig({
   // 站点标题
   title: 'M9 K1-EYES',
   // 部署的基础路径
-  base: '/eyes/',
+  base: '/',
   // 静态资源目录
   assetsDir: 'assets',
   srcDir: '.',
@@ -75,7 +75,7 @@ export default defineConfig({
 })
 
 // 1.
-function createButtonMenus () {
+function createButtonMenus() {
   return [
     {
       text: 'Button 按钮',
@@ -84,7 +84,7 @@ function createButtonMenus () {
   ]
 }
 // 2.
-function createSelectMenus () {
+function createSelectMenus() {
   return [
     {
       text: 'Select 选择框',
@@ -93,7 +93,7 @@ function createSelectMenus () {
   ]
 }
 // 3.
-function createSwitchMenus () {
+function createSwitchMenus() {
   return [
     {
       text: 'Switch 开关',
@@ -102,7 +102,7 @@ function createSwitchMenus () {
   ]
 }
 // 4.
-function createInputMenus () {
+function createInputMenus() {
   return [
     {
       text: 'Input 输入框',
@@ -111,7 +111,7 @@ function createInputMenus () {
   ]
 }
 // 5.
-function createDatePickerMenus () {
+function createDatePickerMenus() {
   return [
     {
       text: 'DatePicker 时间选择器',
@@ -120,7 +120,7 @@ function createDatePickerMenus () {
   ]
 }
 // 6.
-function createCheckBoxMenus () {
+function createCheckBoxMenus() {
   return [
     {
       text: 'CheckBox 选择框',
@@ -129,7 +129,7 @@ function createCheckBoxMenus () {
   ]
 }
 // 16.
-function createCardMenus () {
+function createCardMenus() {
   return [
     {
       text: 'Card 卡片',
@@ -138,7 +138,7 @@ function createCardMenus () {
   ]
 }
 // 17.
-function createTabsMenus () {
+function createTabsMenus() {
   return [
     {
       text: 'Tabs 标签栏',
@@ -147,7 +147,7 @@ function createTabsMenus () {
   ]
 }
 // 7.
-function createPopoverMenus () {
+function createPopoverMenus() {
   return [
     {
       text: 'Popover 气泡',
@@ -156,7 +156,7 @@ function createPopoverMenus () {
   ]
 }
 // 15.
-function createFileMenus () {
+function createFileMenus() {
   return [
     {
       text: 'Filer 文件处理器',
@@ -165,7 +165,7 @@ function createFileMenus () {
   ]
 }
 // 8.
-function createTableMenus () {
+function createTableMenus() {
   return [
     {
       text: 'Table 表格',
@@ -174,7 +174,7 @@ function createTableMenus () {
   ]
 }
 // 9.
-function createFormMenus () {
+function createFormMenus() {
   return [
     {
       text: 'Form 表单',
@@ -183,7 +183,7 @@ function createFormMenus () {
   ]
 }
 // 10.
-function createNaviMenus () {
+function createNaviMenus() {
   return [
     {
       text: 'Navigation 导航布局容器',
@@ -192,7 +192,7 @@ function createNaviMenus () {
   ]
 }
 // 11.
-function createModalMenus () {
+function createModalMenus() {
   return [
     {
       text: 'Modal 弹框',
@@ -201,7 +201,7 @@ function createModalMenus () {
   ]
 }
 // 12.
-function createLoadingMenus () {
+function createLoadingMenus() {
   return [
     {
       text: 'Loading 加载框',
@@ -210,7 +210,7 @@ function createLoadingMenus () {
   ]
 }
 // 13.
-function createMessageMenus () {
+function createMessageMenus() {
   return [
     {
       text: 'Message 消息框',
@@ -219,7 +219,7 @@ function createMessageMenus () {
   ]
 }
 // 14.
-function createM9ChartsMenus () {
+function createM9ChartsMenus() {
   return [
     {
       text: 'Charts 图表库',
