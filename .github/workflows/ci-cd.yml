@@ -33,7 +33,7 @@ jobs:
       - name: See pwd •͈ᴗ•͈
         run: |
           echo "当前工作目录: $(pwd)"
-          ls
+          ls -R
 
       - name: Install Dependencies 🔧
         run: pnpm i
@@ -47,13 +47,13 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: apps/eyes/.vitepress/dist # 指向构建产物的最终路径
-          destination_dir: / # 指定部署到gh-pages分支的/eyes目录
+          destination_dir: ./sargeras-eye/ # 指定部署到gh-pages分支的/eyes目录
           keep_files: false  # 清理旧文件
       
       - name: See pwd •͈ᴗ•͈
         run: |
           echo "当前工作目录: $(pwd)"
-          ls
+          ls -R
           
       # 7. 清理构建产物
       - name: Cleanup Artifacts
