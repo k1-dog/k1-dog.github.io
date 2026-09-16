@@ -2,10 +2,11 @@
   "noImplicitInitialize": true,
   "allowImportingTsExtensions": true,
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "rootDir": "apps",
     "outDir": "./m9-bundle",
-    "target": "ES2015",
+    "target": "es6",
     "module": "node16",
     "allowJs": false,
     "declaration": true,
@@ -18,12 +19,14 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node16",
+    // "experimentalDecorators": true, 装饰器语法旧版声明
+    "useDefineForClassFields": true,
     "resolveJsonModule": true,
     "noImplicitAny": false, // 是否在表达式和声明上有隐含的any类型时报错
     "lib": ["esnext", "dom"]
   },
   "include": [
-    "apps/components", "apps/styles", "apps/utils", "apps/v0", "apps/eslint",
+    "apps/components", "apps/styles", "apps/utils", "apps/tsukiyo", "apps/eslint",
     "./miku-types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]

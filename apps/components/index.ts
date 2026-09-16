@@ -18,9 +18,8 @@ import M9File from './File/File'
 import M9Form from './Form/Form'
 import M9Table from './Table/Table'
 
-import M9Chart from '../v0/m9._z0_'
-
 import M9Msg from './Message/controller'
+
 import M9Drag from '../utils/draggable/element-dragger'
 
 //按需引入
@@ -45,13 +44,14 @@ const components = {
 }
 
 //全局引入
-const vue3Install = (app: App) => {
-  Object.values(components).forEach(compo => { app.component(compo.name, compo) })
+const vue3Install = ($app: App) => {
+  Object.values(components).forEach($compo => { $app.component($compo.name, $compo) })
 }
 
 export const M9MsgX = M9Msg
 export const M9DragX = M9Drag
-export const M9K1ChartX = M9Chart
+export { Tsukiyo as K1TsukiyoX, Shapes, rgba, Prim as K1PrimX } from '../tsukiyo'
+
 export const M9InstallX = vue3Install
 
 export default {

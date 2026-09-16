@@ -22,7 +22,7 @@ declare module '*.vue' {
     M9Message: typeof import('../apps/components/Message/controller.tsx').default // RefTypePathToComponent<'Message', 'controller'>
     M9VScroller: typeof import('../apps/components/VScroller/VScroller.tsx').default // RefTypePathToComponent<'VScroller'>
 
-    M9Chart: typeof import("../apps/v0/m9._z0_.ts").default
+    M9Chart: typeof import("../apps/tsukiyo/m9._z0_.ts").default
     M9Dragger: typeof import("../apps/utils/draggable/element-dragger.tsx").default
     M9DragHelper: typeof import("../apps/utils/draggable/element-drag-helper.tsx").default
   }
@@ -38,3 +38,13 @@ declare type MReturnParam<F0> = F0 extends (args: infer P0) => any ? P0 : unknow
 //   }
 // }
 // declare module '@vitejs/plugin-vue-jsx'
+
+declare global {
+  function yomiSc<This, Args extends any[], Ret>(configString: string): (
+    target: (this: This, ...args: Args) => Ret,
+    context: ClassMethodDecoratorContext
+  ) => typeof target
+  function yomiSub(key: string): ParameterDecorator;
+}
+
+export {}

@@ -10,7 +10,7 @@
     "types:k1": "tsc",
     "build:k1": "vite build",
     "lint:xelnaga": "eslint apps/",
-    "open:eyes": "pnpm --filter eyes serve",
+    "open:eyes": "pnpm --filter eyes dev",
     "build:eyes": "pnpm --filter eyes build",
     "build:apps": "pnpm --parallel --filter ./apps/* run build"
   },

@@ -1,6 +1,8 @@
 import vueJsx from "@vitejs/plugin-vue-jsx"
 import { defineConfig } from 'vitepress'
 
+
+
 const SiteMdsPath = '/markdowns'
 
 const Delimiter = '/'
@@ -17,7 +19,7 @@ export default defineConfig({
   description: 'K1系列 美九未来 通用物流组件库',
   head: [
     // 添加图标
-    ['link', { rel: 'icon', href: '/miku-logo.webp' }]
+    ['link', { rel: 'icon', href: '/sargeras-eye/miku-logo.webp' }]
   ],
   themeConfig: {
     siteTitle: '美九未来 Vue-UI',
@@ -52,7 +54,7 @@ export default defineConfig({
       ...createModalMenus(),
       ...createLoadingMenus(),
       ...createMessageMenus(),
-      ...createM9ChartsMenus()
+      ...createTsukiyoMenus()
     ],
     footer: {
       message: 'K1舞动未来 - 技术引领潮流',
@@ -219,11 +221,11 @@ function createMessageMenus() {
   ]
 }
 // 14.
-function createM9ChartsMenus() {
+function createTsukiyoMenus() {
   return [
     {
-      text: 'Charts 图表库',
-      link: SiteMdsPath + Delimiter + 'M9-Charts/m9-charts.md'
+      text: 'Tsukiyo 图表库',
+      link: SiteMdsPath + Delimiter + 'Tsukiyo/world.md'
     }
   ]
 }

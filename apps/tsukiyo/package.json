@@ -1,0 +1,12 @@
+{
+  "name": "@k1/tsukiyo",
+  "version": "0.0.1",
+  "description": "miku k1 visualization, is tsuki akari o terasu",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["charts", "visualization", "tsukuyomi-illusion", "tsuki-akari terasu"],
+  "author": "",
+  "license": "ISC"
+}
