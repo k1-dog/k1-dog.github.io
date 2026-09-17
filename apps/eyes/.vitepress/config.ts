@@ -2,7 +2,6 @@ import vueJsx from "@vitejs/plugin-vue-jsx"
 import { defineConfig } from 'vitepress'
 
 
-
 const SiteMdsPath = '/markdowns'
 
 const Delimiter = '/'
@@ -11,7 +10,7 @@ export default defineConfig({
   // 站点标题
   title: 'M9 K1-Sargeras EYES',
   // 部署的基础路径
-  base: '/sargeras-eye/',
+  base: '/', // sargeras-eye
   // 静态资源目录
   assetsDir: 'assets',
   srcDir: '.',
@@ -19,7 +18,7 @@ export default defineConfig({
   description: 'K1系列 美九未来 通用物流组件库',
   head: [
     // 添加图标
-    ['link', { rel: 'icon', href: '/sargeras-eye/miku-logo.webp' }]
+    ['link', { rel: 'icon', href: '/miku-logo.webp' }]
   ],
   themeConfig: {
     siteTitle: '美九未来 Vue-UI',
