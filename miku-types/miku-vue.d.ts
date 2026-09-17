@@ -28,6 +28,8 @@ declare module '*.vue' {
   }
 }
 
+declare module '*.webp'
+
 declare type MVElementR = ComponentPublicInstance | Element | null
 
 declare type MReturnParam<F0> = F0 extends (args: infer P0) => any ? P0 : unknown

@@ -1,8 +1,5 @@
 /**
- * maths — 数学计算 + RGBA 颜色计算
- *
- * 纯函数，零状态，可独立测试。
- * 统一颜色入口：Hm_pack / Hm_rgba / Hm_rgbaStr / Hm_alphaFill / Hm_palette。
+ * maths — 数学计算 + RGBA 颜色计算（纯函数零状态）
  */
 import { FILL_α } from './const'
 
@@ -10,17 +7,15 @@ import type { Bounds } from '../yomi'
 
 // —— 基础数学 ——
 
-/** 线性插值 — from → to 按 t 混合 */
 export function Hm_lerp($from: number, $to: number, $t: number): number {
   return $from + ($to - $from) * $t
 }
 
-/** 钳制 — 限制 value 在 [min, max] 范围内 */
 export function Hm_clamp($value: number, $min: number, $max: number): number {
   return $value < $min ? $min : $value > $max ? $max : $value
 }
 
-/** 映射 — 将 value 从 [inMin, inMax] 线性映射到 [outMin, outMax] */
+/** [inMin,inMax] → [outMin,outMax] 线性映射（钳制） */
 export function Hm_mapRange(
   $value: number,
   $inMin: number,
@@ -32,7 +27,6 @@ export function Hm_mapRange(
   return Hm_lerp($outMin, $outMax, Hm_clamp(t, 0, 1))
 }
 
-/** 缓动函数集合 */
 export const Hm_Ease = {
   linear: ($t: number): number => $t,
   easeIn: ($t: number): number => $t * $t,
@@ -46,14 +40,12 @@ export const Hm_Ease = {
   },
 } as const
 
-/** 两点距离 */
 export function Hm_dist($x1: number, $y1: number, $x2: number, $y2: number): number {
   const dx = $x2 - $x1
   const dy = $y2 - $y1
   return Math.sqrt(dx * dx + dy * dy)
 }
 
-/** AABB 包含判定 — point 是否在 bounds 内 */
 export function Hm_containsPoint($bounds: [number, number, number, number], $px: number, $py: number): boolean {
   return (
     $px >= $bounds[0] &&
@@ -63,7 +55,7 @@ export function Hm_containsPoint($bounds: [number, number, number, number], $px:
   )
 }
 
-/** 合并多个 Bounds 为单个包围盒（全局 min/max） */
+/** 多 Bounds 合一（全局 min/max） */
 export function Hm_unionBounds($rects: Bounds[]): Bounds | null {
   if ($rects.length === 0) return null
   let _minX = Infinity, _minY = Infinity, _maxX = -Infinity, _maxY = -Infinity
@@ -79,12 +71,11 @@ export function Hm_unionBounds($rects: Bounds[]): Bounds | null {
 
 // —— RGBA 颜色计算 ——
 
-/** packed RGBA → number（全系统唯一颜色打包函数） */
+/** packed RGBA（全系统唯一颜色打包） */
 export function Hm_rgba($r: number, $g: number, $b: number, $a = 255): number {
   return (($a << 24) | ($r << 16) | ($g << 8) | $b) >>> 0
 }
 
-/** number → rgba string（Canvas2D 后端用） */
 export function Hm_rgbaStr($packed: number): string {
   const a = ($packed >>> 24) & 0xff
   const r = ($packed >>> 16) & 0xff
@@ -93,10 +84,7 @@ export function Hm_rgbaStr($packed: number): string {
   return `rgba(${r},${g},${b},${(a / 255).toFixed(2)})`
 }
 
-/**
- * alpha 降级 — 保留 packed RGBA 的 RGB 通道，替换 alpha 为 FILL_α
- * 用于 Rect / Arc / Circle / Triangle 等所有原语的填充色统一降透明度
- */
+/** alpha 替换为 FILL_α（RGB 保留 — 填充色统一降透明度） */
 export function Hm_alphaFill(
   $packed: number,
   $type: 'radar' | 'rect' | 'pie' = 'radar'
@@ -107,19 +95,10 @@ export function Hm_alphaFill(
 // —— 调色板 ——
 
 export const Hm_palette = {
-  // shape.ts 默认填充色
-  defaultFill: Hm_rgba(253, 206, 160, 255),
-
-  // interact.ts hover 叠加高亮色（半透明橙）
-  highlight: Hm_rgba(255, 165, 0, 180),
-
-  // render.ts 锁定描边色（实心橙）
-  stroke: Hm_rgba(255, 165, 0, 255),
-
-  // v/index.ts 默认 pointFn 填充色（矢车菊蓝）
-  primary: Hm_rgba(100, 149, 237, 200),
-
-  // 多系列调色板 — 按系列索引取色
+  defaultFill: Hm_rgba(253, 206, 160, 255),   // shape 默认填充
+  highlight: Hm_rgba(255, 165, 0, 180),       // hover 高亮（半透明橙）
+  stroke: Hm_rgba(255, 165, 0, 255),          // 锁定描边（实心橙）
+  primary: Hm_rgba(100, 149, 237, 200),       // 默认 pointFn 填充（矢车菊蓝）
   series: [
     Hm_rgba(100, 149, 237, 200),  // blue
     Hm_rgba(255, 99, 71, 200),    // tomato red
@@ -128,6 +107,6 @@ export const Hm_palette = {
     Hm_rgba(148, 103, 189, 200),  // purple
   ],
 
-  /** 按索引取系列色（循环） */
+  /** 按索引循环取系列色 */
   seriesAt: ($i: number): number => Hm_palette.series[$i % Hm_palette.series.length]
 }

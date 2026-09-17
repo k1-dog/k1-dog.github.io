@@ -15,29 +15,30 @@ apps/tsukiyo/
 ├── yomi.ts           # 类型契约层（読み）— 全局接口/类型集中地
 ├── world.md          # 用户文档（图表演示 + 用法）
 ├── rag.md            # 本文件 — AI 检索知识库
-├── m/                # Model 层（数据）
-│   ├── model.ts      # TsuModel — SoA 唯一数据源 + vToM/mToV 桥
-│   └── std-1.ts      # std() 数据标准化（宽表 melt → 长表）+ Wish/Pool/Intake
-├── v/                # View 层（视觉）
-│   ├── index.ts      # Tsukiyo 链式入口类
-│   ├── shape.ts      # Shapes 原语工厂 + pointTask（SoA 唯一写入者）
+├── helper/           # ① 通用工具（与数据/视图/调度无关的普适能力）
+│   ├── const.ts      # 全部常量（命名规范：场景前缀_含义）
+│   ├── canvas.ts     # Hcvs_ Canvas 封装（retina/batch）
+│   ├── maths.ts      # Hm_ 数学工具（rgba/palette/mapRange）
+│   └── kit.ts        # Hs_ 通用工具（类型判断/UUID/深拷贝/Wish/Pool/Intake）
+├── m/                # ② Model 数据层 — 图形背后的真实数据模型
+│   ├── model.ts      # TsuModel — SoA 唯一数据源 + 统一读写出口（anim/hover/click 收口）+ vToM/mToV 桥
+│   └── std.ts        # std() 数据标准化/初始化（宽表 melt → 长表 / 基元快路径）
+├── v/                # ③ View 视图层 — 图形绘制与交互联动
+│   ├── shape.ts      # Shapes 原语工厂 + pointTask（SoA 图形槽唯一写入者）
 │   ├── coord.ts      # coordTask 定位 + resolveCoordLocator 规则解析
 │   ├── paths.ts      # pathsTask 非位置几何 + PathsHook
+│   ├── layering.ts   # 高级视觉布局 — 视觉基准/脏区收集/剔除/anim 推进委托
+│   ├── camera3.ts    # 取景相机 — CoordMapper 双实现 + 3D 相机数学
 │   ├── render.ts     # Canvas2D 渲染器 + createRenderer（2D/3D 工厂）
 │   ├── render-3d.ts  # WebGPU3D 渲染器（storage buffer 实例化）
-│   ├── camera3.ts    # 3D 相机：取景/矩阵/射线拾取
+│   ├── interact.ts   # 鼠标事件联动响应（hover/click/tooltip — 命中委托 spatial）
 │   └── wgsl/         # WGSL 着色器（?raw 加载）+ wgsl.d.ts
-├── middleware/       # 中间件层（调度）
-│   ├── engine.ts     # Engine — 装配全部 task 到 Scheduler
-│   ├── scheduler.ts  # Scheduler — 唯一时钟（16ms lockstep）
-│   ├── spatial.ts    # Grid — 空间哈希（划分区+聚合区双职责）
-│   ├── dirty.ts      # Dirty — 脏区域收集合并
-│   ├── interact.ts   # Interact — hover/click/滚轮交互
-│   └── layering.ts   # Layering — 网格层+脏收集+剔除+anim
-└── helper/           # 工具包
-    ├── const.ts      # 全部常量（命名规范：场景前缀_含义）
-    ├── canvas.ts     # Hcvs_ Canvas 封装（retina/batch）
-    └── maths.ts      # Hm_ 数学工具（rgba/palette/mapRange）
+└── middleware/       # ④ 中间件层 — 桥接 m↔v / 统领全局
+    ├── scheduler.ts  # Scheduler — 唯一时钟（16ms lockstep）
+    ├── engine.ts     # Engine — 装配全部 task 到 Scheduler（统领全局）
+    ├── index.ts      # Tsukiyo 链式入口类（统领装配）
+    ├── spatial.ts    # Grid — 空间三区（划分索引/聚合取景/命中检测，桥接 m↔v）
+    └── dirty.ts      # Dirty — 脏区域收集合并（桥接 SoA 脏位图 → v 重绘区域）
 ```
 
 ### 1.2 核心 6 大工作执行流阶段（关系图 + 职责）
@@ -67,7 +68,7 @@ apps/tsukiyo/
 | ② point | v/shape.ts | after ① · dataDirty 守卫 | elements + pointFn | type / fill / aux / src（图形槽唯一写入者） | 元素 → ShapeDesc → 连续写入 SoA；pointFn 可依赖元素数据，数据变化必须重定型 |
 | ③ coord | v/coord.ts | after ② · dataDirty 守卫 | locator + 视口尺寸 | x / y（定位）+ CoordCtx（值域上下文） | 坐标定位 + 值域归一，产出 ④ 与网格共享的上下文 |
 | ④ paths | v/paths.ts | after ③ · dataDirty 守卫 | locator + CoordCtx | w / h + aux（非位置几何） | 图形封闭（h/角度/Δ/偏移）+ pathsHook 用户边界；dataDirty 用后清除 |
-| ⑤ layering | middleware/layering.ts | after ④ · 常驻 | gridDirty + drainDirty + 视口 | anim（唯一推进点）+ region / inView + spatial / 相机 | 微流水：网格重绘 → 脏消费+AABB 扩张+spatial 更新 → region 合并 → inView 剔除 → anim 推进 → 相机重算 |
+| ⑤ layering | v/layering.ts | after ④ · 常驻 | gridDirty + drainDirty + 视口 | region / regionBigDrawing + spatial 更新（anim 推进委托 model.stepAnim） | 微流水：网格重绘 → 脏消费+AABB 扩张+spatial 更新 → region 合并 → inView 剔除 → anim 推进（model 出口） |
 | ⑥ draw | v/render.ts · render-3d.ts | after ⑤ · draw 相 | region + inView + 相机矩阵/视线 | 零 SoA 写（纯读取） | Canvas2D 分桶批绘制 / WebGPU storage buffer 实例打包 → flush 上屏 |
 
 **关键不变量**：
@@ -101,11 +102,11 @@ apps/tsukiyo/
 | type | Prim 原语类型 | point task |
 | fill | RGBA 打包 uint32 | point task（唯一） |
 | aux | 几何参数（GEO_SLOTS_EACH_ELEM=3 槽/元素） | point/paths task |
-| anim | 生长进度 0→1 | layering（唯一推进点） |
+| anim | 生长进度 0→1 | model 出口（stepAnim 推进 / setClickSlots 重置 — 唯一写入出口收口 model） |
 | dirty | 脏位图（**单真相结构** — 无第二结构需同步） | markDirty 幂等置位 / drainDirty 扫描清零 |
 | src | 原始元素索引 | point task |
-| hoverSlots | hover 槽位集合（**派生态**，不写 SoA） | interact |
-| clickSlots | click 锁定集合 | interact |
+| hoverSlots | hover 槽位集合（**派生态**，不写 SoA） | model 出口 setHoverSlots/clearHover（interact 唯一调用方） |
+| clickSlots | click 锁定集合 | model 出口 setClickSlots/clearClick（interact 唯一调用方） |
 
 ### 2.2 关键协议
 
@@ -138,13 +139,21 @@ pointTask 遍历元素调 pointFn 得 ShapeDesc，连续写入 SoA（fill 打包
 - `coordTask(model, locator, w, h)` — 写 x/y + 返回 CoordCtx（valueMin/valueMax/ruler）
 - `radarRadius(w, h)` — 雷达半径（含标签位），grid 与 coord 同源
 
-### 3.3 render.ts / render-3d.ts
+### 3.3 render.ts / render-3d.ts — 绘制+清理
 
 - `createRenderer(canvas, mode)` — 工厂：2D → {renderer, camera:恒等}；3d → WebGPU3D + camera3 相机（回退 2D 同步降级）
 - Canvas2D：Hcvs_batch 按原语类型分桶批渲染
 - WebGPU3D：1 原语 = 1 Material = 1 storage buffer = 1 draw call；实例数据 10×f32=40B/个连续写
 
-### 3.4 camera3.ts
+### 3.4 layering.ts — 高级视觉布局
+
+task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准重建（redrawGrid 按 locator.grid meta + 双 canvas retina 合成 + wipeDevice 设备域全清）② drainDirty 消费+AABB 扩张（DIRTY_PAD_RATIO×+DIRTY_PAD_PX）+ spatial.update ③ dirty.consume 合并 regionDrawing ④ regionBigDrawing 收集（视口∧脏区相交）⑤ anim 推进 — 委托 **model.stepAnim(regionBigDrawing)**（anim 唯一写入出口收口 model）。静态网格层 gridCanvas 与数据 canvas 分离（不闪烁）。
+
+### 3.5 interact.ts — 鼠标事件联动
+
+事件接收派发器（零几何感知）：DOM 事件 → Intake → task drain；leave 清 hover/click（委托 model.clearHover/clearClick）；wheel/drag → spatial.zoomBy/orbitBy + markAllDirty；move/click → **`spatial.onHitTest(m, sx, sy)` 单出口委托**（null=无法检测保持现状态 / []=无命中照常清 hover）→ setHover/setClick（**委托 model 出口 setHoverSlots/setClickSlots** — anim/hover/click 写入单点收口）。tooltip 常量 TOOLTIP 配置（cssText/offset/valueDecimals）。
+
+### 3.6 camera3.ts
 
 - `frameCamera(box, w, h, tilt, turn, zoom)` — 取景（包围球+有效视锥角；视线姿态 tilt/turn/zoom）
 - `clipForTsukiyoWorld(cam)` — 视图×透视矩阵（三缓冲复用零分配）
@@ -152,7 +161,7 @@ pointTask 遍历元素调 pointFn 得 ShapeDesc，连续写入 SoA（fill 打包
 - `sightRay` — 屏幕像素 → 世界系视线射线（模块私有；与透视矩阵严格互逆）
 - ray* 命中谓词族（rayBox/rayBar/rayWedge）已收敛至 spatial 命中区
 
-## 4. 中间件层（middleware/）
+## 4. 中间件层（middleware/）— 桥接 m↔v / 统领全局
 
 ### 4.1 scheduler.ts
 
@@ -165,17 +174,13 @@ pointTask 遍历元素调 pointFn 得 ShapeDesc，连续写入 SoA（fill 打包
 - **命中区**（碰撞检测单出口）：`onHitTest(m, sx, sy)` 唯一入口 — 射线就绪走 hitByRay（z 板夹取 → 划分区候选 → rayBody 逐槽位精测），否则 hitByPoint（worldToCoordXY → 候选 → AABB/Arc 角度/Triangle 重心内联精筛）；null=无法检测 / []=无命中语义区分；纯读零写
 - ray* 谓词族（模块级纯函数，凸域相交统一"t 区间收窄"）：rayBox（Rect 盒）/ rayBar（Line 条）/ rayWedge（Arc 楔，|sweep|≥π 退化整圆盘）/ rayBody（逐槽位分派，几何参数逐字镜像 render-3d packer）
 
-### 4.3 interact.ts
-
-事件接收派发器（零几何感知）：DOM 事件 → Intake → task drain；leave 清 hover/click；wheel/drag → spatial.zoomBy/orbitBy + markAllDirty；move/click → **`spatial.onHitTest(m, sx, sy)` 单出口委托**（null=无法检测保持现状态 / []=无命中照常清 hover）→ setHover(hits, pos)/setClick(hits)。tooltip 常量 TOOLTIP 配置（cssText/offset/valueDecimals）。
-
-### 4.4 layering.ts
-
-task 六阶段：① gridDirty 守卫重绘（redrawGrid 按 locator.grid meta：cartesian/polar/radar）② drainDirty 消费+AABB 扩张（DIRTY_PAD_RATIO×+DIRTY_PAD_PX）+ spatial.update ③ dirty.consume 合并 region ④ inView 收集（视口∧脏区相交）⑤ anim 推进（ANIM_STEP）⑥ 相机重算。静态网格层 gridCanvas 与数据 canvas 分离（不闪烁）。
-
-### 4.5 engine.ts
+### 4.3 engine.ts — 统领装配
 
 装配层零逻辑。pending 投递通道（raw/dim/resized）；registerTasks 注册 ①-⑦；pause/resume 幂等管理 interact/layering。
+
+### 4.4 index.ts — Tsukiyo 链式入口（统领）
+
+`new Tsukiyo(canvas).input().scale().coord().point().paths().draw(mode)` 链式组合；draw 内 createRenderer 与 Engine 成对装配（回退 2D 时相机同步降级恒等）。
 
 ## 5. 常量速查（helper/const.ts）
 
@@ -205,13 +210,13 @@ task 六阶段：① gridDirty 守卫重绘（redrawGrid 按 locator.grid meta�
 > 全库设计铁律 — 任何修改前逐条对照自检。每条附「落地锚点」指向本库已实践的位置。
 
 1. **逻辑变量能派生复用就派生复用、避免定义冗余新概念**
-   落地锚点：hover 高亮 = hoverSlots 派生态（render/3D packer 绘制时派生描边+缩放，废除 origFills 备份恢复链）；3D hover 加粗 = STROKE_LOCKED/STROKE_NORMAL 比值派生；HALF_EXTRUDE_Z = C3D.THICK_BAR/2 单源；camera3/render-3d 聚合盒复用 model.contentBounds()。
+   落地锚点：hover 高亮 = hoverSlots 派生态（render/3D packer 绘制时派生描边+缩放）；3D hover 加粗 = STROKE_LOCKED/STROKE_NORMAL 比值派生；HALF_EXTRUDE_Z = C3D.THICK_BAR/2 单源；camera3/render-3d 聚合盒复用 model.contentBounds()。
 
 2. **变量或者方法的命名，风格一定要简洁、优雅、同时不能缺失具体语义**
-   落地锚点：hoverEids → hoverSlots（命中的是 SoA 槽位而非原始元素，语义纠正）；resolveCoordWithWorld → resolveCoordLocator（实际产出定位器）；形参 $ 前缀 / 局部 _ 前缀既定约定。
+   落地锚点：hoverSlots（命中的是 SoA 槽位而非原始元素）；resolveCoordLocator（实际产出定位器）；形参 $ 前缀 / 局部 _ 前缀既定约定。
 
 3. **数据状态的同步写入更新方面，严禁出现多处相同链路数据的同步，避免数据值漂移，对齐困难**
-   落地锚点：A4 漂移修复 — gridDirty 由 engine 调用线程置位改为 layering task 首行消费（读到的 coordCtx 必为本轮产出，结构性消灭双点同步）；interact 曾持 hoverEids 副本与 model 双写同步 → 删副本单源持有。
+   落地锚点：gridDirty 由 layering task 首行消费（读到的 coordCtx 必为本轮产出，单点消费零同步）；hoverSlots/clickSlots 单源持有于 model，interact 零副本。
 
 4. **数据流上下游流向显式的清晰可见。并且数据源唯一是SoA存储结构，其他执行模块内的数据状态理论上都应该由SoA数组派生推导出来，不能单独持有其他数据源**
    落地锚点：engine registerTasks after 链显式声明 ①→⑥ 上下游；layering 依赖（视口/locator/coordCtx）全 getter 回调注入（读取即最新，零副本）；SoA 每数组唯一写入者（见 1.2 职责表）；hoverSlots/clickSlots 是外部输入态（不可由 SoA 派生），单点持有于 model、绘制时消费。
@@ -233,7 +238,7 @@ task 六阶段：① gridDirty 守卫重绘（redrawGrid 按 locator.grid meta�
 - **改 SoA 结构**（增删数组/改槽位布局）：同步 model.ts + shape.ts（写入）+ render.ts/render-3d.ts（读取）+ camera3.ts（3D 几何）+ interact.ts（命中）
 - **3D 几何参数**：render-3d.ts packer 与 spatial rayBody 逐字镜像（锚点语义：Rect 底部锚点生长/hover 底部中心缩放、Line 起点锚点延伸/hover 加粗 2×、Arc 半径生长/hover 半径缩放）；SECTOR_VERTS 与 vs_sector 的 vi 分解一一对应
 - **改数据流顺序**：engine.ts registerTasks after 链；注意 interact 一帧滞后设计
-- **改导出名**：同步根 index.ts 与 v/index.ts
+- **改导出名**：同步根 index.ts 与 middleware/index.ts（链式入口）
 - **改网格**：layering.ts redrawGrid + GRID_STYLE，网格族判定读 locator.grid（单源）
 - **零分配热路径**：aabbInto(buf)/矩阵三缓冲/uniformData/staging 修改时保持复用模式
 
@@ -254,9 +259,10 @@ task 六阶段：① gridDirty 守卫重绘（redrawGrid 按 locator.grid meta�
 | 颜色 | helper/maths.ts Hm_palette |
 | hover 高亮样式 | v/render.ts drawBatch（STROKE_LOCKED）+ render-3d.ts（hover 派生） |
 | tooltip 样式 | helper/const.ts TOOLTIP + interact.ts showTooltip |
-| 网格背景 | middleware/layering.ts redrawGrid |
+| 网格背景 | v/layering.ts redrawGrid |
 | 动画速度 | helper/const.ts ANIM_STEP |
 | 3D 视角/光照 | helper/const.ts C3D + v/camera3.ts |
-| 脏区域/局部重绘 | middleware/dirty.ts + layering.ts task |
-| 命中测试 | middleware/spatial.ts 命中区（onHitTest 单出口；interact 委托） |
+| 脏区域/局部重绘 | middleware/dirty.ts + v/layering.ts task |
+| 命中测试 | middleware/spatial.ts 命中区（onHitTest 单出口；v/interact.ts 委托） |
+| anim/hover/click 写入 | m/model.ts 出口（stepAnim/setHoverSlots/clearHover/setClickSlots/clearClick） |
 | 调度顺序 | middleware/engine.ts registerTasks |
