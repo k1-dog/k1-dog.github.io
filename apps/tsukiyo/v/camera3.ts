@@ -227,8 +227,8 @@ export class CoordMapper2D implements CoordMapper {
     const b = $m.contentBounds()
     if (!b) { this.gazeM.fill(0); this.gazeM[0] = this.gazeM[3] = 1; return false }
     // 2D 取景：内容盒中点随 zoom 推拉/视线平移平移（缩放锚点 = 当前凝视点）
-    this.gazeM[0] = this.zoom; this.gazeM[1] = 0
-    this.gazeM[2] = 0;         this.gazeM[3] = this.zoom
+    this.gazeM[0] = this.zoom;  this.gazeM[1] = 0
+    this.gazeM[2] = 0;          this.gazeM[3] = this.zoom
     this.gazeM[4] = this.gazeX; this.gazeM[5] = this.gazeY
     const moved = this.moved
     this.moved = false
@@ -286,7 +286,7 @@ export class CoordMapper3D implements CoordMapper {
   /** 视线绕场景自由旋转 — 水平偏航 turn + 垂直俯仰 tilt（拖拽跟手；tilt 钳制避开 ±90° 三轴退化） */
   orbitBy($dx: number, $dy: number): void {
     if ($dx === 0 && $dy === 0) return
-    this.turn += $dx * ORBIT_TURN_STEP
+    this.turn += - $dx * ORBIT_TURN_STEP
     this.tilt = Math.min(C3D.TILT_MAX, Math.max(C3D.TILT_MIN, this.tilt + $dy * ORBIT_TILT_STEP))
     this.moved = true
   }

@@ -64,12 +64,12 @@ export class Interact implements Schedulable {
   private readonly onLeave = (): void => {
     this.scheduler.intake(this.taskName).feed({ type: 'leave', pos: [0, 0] })
   }
-  /** 滚轮推拉 — 上滚（deltaY<0）拉远看全景 / 下滚推近看细节；pos=光标位置（跟手缩放锚点）；passive:false 阻止页面滚动 */
+  /** 滚轮推拉 — 上滚（deltaY<0）拉远看近景 / 下滚推近看远景；pos=光标位置（跟手缩放锚点）；passive:false 阻止页面滚动 */
   private readonly onWheel = ($e: WheelEvent): void => {
     $e.preventDefault()
     this.scheduler.intake(this.taskName).feed({
       type: 'wheel', pos: [$e.offsetX, $e.offsetY],
-      zoomDelta: $e.deltaY * ZOOM_STEP,
+      zoomDelta: - $e.deltaY * ZOOM_STEP,
     })
   }
 
@@ -262,7 +262,6 @@ export class Interact implements Schedulable {
 
     this.hideTooltip()
   }
-
 
   // —— tooltip 辅助方法 ——
 
