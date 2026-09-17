@@ -4,7 +4,7 @@ import qinliImg from '@k1/styles/assets/image/kotori_01.webp'
 import sansanImg from '@k1/styles/assets/image/kurumi_01.webp'
 import meijiuImg from '@k1/styles/assets/image/miku.webp'
 
-export function mockFormModel($formFieldNames) {
+export function mockFormModel($formFieldNames: any) {
   return $formFieldNames.reduce(($Model, $FieldName) => {
     if ($FieldName === 'honor') {
       $Model[$FieldName] = {

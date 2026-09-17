@@ -10,7 +10,7 @@ export default defineConfig({
   // 站点标题
   title: 'M9 K1-Sargeras EYES',
   // 部署的基础路径
-  base: '/', // sargeras-eye
+  base: '/eyes', // sargeras-eye
   // 静态资源目录
   assetsDir: 'assets',
   srcDir: '.',
