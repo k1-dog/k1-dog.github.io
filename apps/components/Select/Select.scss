@@ -16,7 +16,7 @@ $sContainerStyles: (
   /* 外部结构样式 */
 
   /* 内部结构样式 */
-  display: inline-block;
+  // display: inline-block;
   padding: 0.3em 0.5em;
   border: 1px solid m9Themed('m9-element-borderClr');
   border-radius: 5px;
@@ -30,7 +30,7 @@ $sContainerStyles: (
 
   &__inner {
     display: flex;
-    width: 10rem;
+    width: 100%;
     border-radius: 4px;
     justify-content: space-between;
     cursor: pointer;

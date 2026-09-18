@@ -8,20 +8,20 @@ const Delimiter = '/'
 
 export default defineConfig({
   // 站点标题
-  title: 'M9 K1-Sargeras EYES',
+  title: 'M9 K1-Sargeras-Eye',
   // 部署的基础路径
   base: '/eyes', // sargeras-eye
   // 静态资源目录
   assetsDir: 'assets',
   srcDir: '.',
   // 网站描述
-  description: 'K1系列 美九未来 通用物流组件库',
+  description: 'K1系列 美九未来 通用物料组件库',
   head: [
     // 添加图标
     ['link', { rel: 'icon', href: '/miku-logo.webp' }]
   ],
   themeConfig: {
-    siteTitle: '美九未来 Vue-UI',
+    siteTitle: '美九未来 - 萨格拉斯之眼',
     logo: '/miku-logo.webp',
     // 启动页面丝滑滚动
     // smoothScroll: true,

@@ -20,7 +20,7 @@ export interface FT extends MU_FILE {
   imgUrl: string
   status: UPSTATUS
   rawFile: MU_FILE
-  // 每个美九文件对象 - 对应的上传句柄 - 用来手动取消销毁句柄xhr实例, 优化性能, 形成闭合的工程周期
+  // 每个美九文件对象 - 对应的上传句柄 - 用来手动销毁xhr实例, 优化性能, 形成闭合的工程周期
   $xhr: null | {
     _kill: (xhr: XMLHttpRequest) => void;
     xhr: XMLHttpRequest
@@ -32,7 +32,7 @@ export interface MFileProps {}
 export interface MFileState {
   imager: {
     [k in Extract<keyof FT, '_MFID_' | 'name' | 'width' | 'height' | 'imgUrl'>]: FT[k]
-  } & { _MFID_: FT['_MFID_'] } | null 
+  } & { _MFID_: FT['_MFID_'] } | null
 
   fileList: FT[]
 

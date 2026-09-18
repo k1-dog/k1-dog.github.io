@@ -1,4 +1,11 @@
-.m9-vscroller--bar {
-  width: 8px;
-  overflow: auto;
+.m9-vscroller {
+  position: relative;
+  overflow-y: scroll;
+  &__bar {
+    width: 1px;
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
 }

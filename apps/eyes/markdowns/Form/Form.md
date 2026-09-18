@@ -28,11 +28,9 @@
 | emitZzController | 折纸表单验证器生成且挂载后的回调事件 | (zv$) => void |  () => void  |
 
 <script setup lang="ts">
-
 import { mockFormModel } from './Mock.tsx'
 
-const zzFields = ['honor', 'overlord', 'like', 'jointime', 'score', 'face', '___1', 'kurumi', 'yoshino', '___2', 'kotori']
-const formModel = mockFormModel(zzFields)
+const formModel = mockFormModel()
 const formRules = {}
 var ZVController
 const zzListeners = {

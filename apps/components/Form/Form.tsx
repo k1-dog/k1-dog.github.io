@@ -58,7 +58,8 @@ const SelectUI = function SelectUI<FKEY4>(
     // filterMode = 'contains',
     isVirtual,
     isMulti = false,
-    replaceFields = { value: 'value', label: 'label' }
+    replaceFields = { value: 'value', label: 'label' },
+    ...restSelectProps
   } = FieldOptions
   if (!!!FieldZV$) {
     return null
@@ -73,7 +74,6 @@ const SelectUI = function SelectUI<FKEY4>(
   const filterConf = isFilter
     ? {
         filterable: true,
-        // filterMode: 'contains',
         onFilter: ($searchingEvent: any) => {
           const { value: searchingText } = $searchingEvent
           // ? 本来想监听筛选事件 -改善虚拟滚动下的筛选功能 -结果 GG 了
@@ -85,8 +85,7 @@ const SelectUI = function SelectUI<FKEY4>(
 
   const listeners = { onChange: changedHandler }
 
-  return <M9Select v-model={FieldZV$.$model} {...filterConf} {...virtualSConf} multiable={isMulti} options={options} replaceFields={replaceFields} {...listeners}>
-    </M9Select>
+  return <M9Select v-model={FieldZV$.$model} {...filterConf} {...virtualSConf} multiable={isMulti} options={options} replaceFields={replaceFields} {...listeners} {...restSelectProps} />
 }
 
 // * 切换开关 VNode 生成器

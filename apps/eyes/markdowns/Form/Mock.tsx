@@ -3,9 +3,18 @@ import zhezhiImg from '@k1/styles/assets/image/zhezhi_02.webp'
 import qinliImg from '@k1/styles/assets/image/kotori_01.webp'
 import sansanImg from '@k1/styles/assets/image/kurumi_01.webp'
 import meijiuImg from '@k1/styles/assets/image/miku.webp'
+import { M9ZzFieldT } from '@k1/ui-lib/Form/Type'
+import { FT } from '@k1/ui-lib/File/Type'
 
-export function mockFormModel($formFieldNames: any) {
-  return $formFieldNames.reduce(($Model, $FieldName) => {
+const zzFields = [
+  'honor', 'overlord', 'like', 'jointime', 'score', 'face', '___1', 'kurumi', 'yoshino', '___2', 'kotori'
+] as const
+type TZzFieldType = typeof zzFields[number]
+
+export function mockFormModel($formFieldNames = zzFields) {
+  return $formFieldNames.reduce<
+    Partial<Record<TZzFieldType, M9ZzFieldT<TZzFieldType>>>
+  >(($Model, $FieldName) => {
     if ($FieldName === 'honor') {
       $Model[$FieldName] = {
         key: $FieldName,
@@ -21,26 +30,24 @@ export function mockFormModel($formFieldNames: any) {
             return { name: `想美九的第 {- ${$_m} -} 天`, value: '5' + $_m }
           })
         ],
-        optionSlot: function eachItemSlot(OPTIONProp) {
-          const currentItem = OPTIONProp.option
-
+        optionSlot: function eachItemSlot(OPTION) {
           const src =
-            Number(currentItem.value) === 1
+            Number(OPTION.value) === 1
               ? zhezhiImg
-              : Number(currentItem.value) === 3
+              : Number(OPTION.value) === 3
               ? sansanImg
-              : Number(currentItem.value) === 5
+              : Number(OPTION.value) === 5
               ? qinliImg
               : meijiuImg
 
           return [
-            <div class="flex align-items-center">
-              {(currentItem.value < 10 && <img style={{ float: "left" }} width={28} src={src} />) || null}
-              <span style={{ float: "left" }}>{currentItem.name}</span>
+            <div className="flex align-items-center">
+              {(OPTION.value < 10 && <img style={{ float: "left" }} width={28} src={src} />) || null}
+              <span>{OPTION.name}</span>
             </div>
           ]
         },
-        isFilter: true,
+        isFilter: () => true,
         isVirtual: true, // ? 开启虚拟滚动后, 选项的模糊匹配会局限于 当前可视选项数据围内~~emmm想办法解决下这个问题
         type: "SLT" // ? 选择框类型
       }
@@ -60,46 +67,40 @@ export function mockFormModel($formFieldNames: any) {
           })
         ],
         optionValue: ($data) => $data,
-        optionSlot: function eachItemSlot(OPTIONProp) {
-          const currentItem = OPTIONProp.option
+        optionSlot: function eachItemSlot(OPTION) {
           const src = zhezhiImg
           return [
-            <div class='flex align-items-center'>
-              {(currentItem.value < 10 && <img style={{ float: 'left' }} width={28} src={src}></img>) || null}
-              <span style={{ float: 'left' }}>{currentItem.name}</span>
+            <div className='inline-flex align-items-center w-6'>
+              {(OPTION.value < 10 && <img style={{ float: 'left' }} width={28} src={src} />) || null}
+              <span
+                className='pl-2 text-overflow-ellipsis w-12 overflow-hidden border-round-lg bg-bluegray-700 text-indigo-100'
+                title={OPTION.name}
+              >
+                {OPTION.name}
+              </span>
             </div>
           ]
         },
-        valueSlot: function showValueSlot(VALUEProp) {
-          const showingOptions = VALUEProp.value
-          if (!!!showingOptions) {
+        valueSlot: function showValueSlot(sltCtx) {
+          const { curInputVal, curInputIndex, inputVals } = sltCtx
+          if (!curInputIndex) {
             return null
           }
 
-          const src = zhezhiImg
           const limitShowNumber = 6
-          const couldShowsOf_6OPT = showingOptions.slice(0, limitShowNumber)
+          const ShowsOptIn6 = curInputIndex < limitShowNumber
           return [
-            <div class='flex flex-wrap'>
-              {couldShowsOf_6OPT.map(($eachOption) => (
-                <div class='inline-flex align-items-center w-6'>
-                  {<img width={28} src={src}></img> || null}
-                  <span
-                    class='pl-2 text-overflow-ellipsis w-12 overflow-hidden border-round-lg bg-bluegray-700 text-indigo-100'
-                    title={$eachOption.name}>
-                    {$eachOption.name}
-                  </span>
-                </div>
-              ))}
-            </div>,
+              ShowsOptIn6 ? (
+              <div>{curInputVal.MSLabel}</div>
+            ) : null,
             <div>
-              {showingOptions.length > limitShowNumber && <span>......</span>}
-              <span>+{showingOptions.length} 个全员恶人</span>
+              {inputVals.length > limitShowNumber && <span>......</span>}
+              <span>+{`${curInputIndex} / ${inputVals.length}`} 个大恶人</span>
             </div>
           ]
         },
         isMulti: true,
-        isFilter: true,
+        isFilter: () => true,
         // isVirtual: true, // ? 开启虚拟滚动后, 选项的模糊匹配会局限于 当前可视选项数据范围内~~emmm想办法解决下这个问题
         type: 'SLT' // ? 选择框类型
       }
@@ -132,7 +133,7 @@ export function mockFormModel($formFieldNames: any) {
         _class: 'col-12',
         label: '约会大作战-' + $FieldName,
         required: true,
-        onUpload: ({ files }) => {
+        onUpload: ({ files }: { files: FT }) => {
           console.log('我已拥有这么多文件', files, ' ~~准备上传接口吧')
         },
         type: 'FILE' // ? 文件上传类型

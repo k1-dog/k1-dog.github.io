@@ -1,10 +1,21 @@
 interface IUnique {
-  <U>(arr: Array<U>): U[]
+  <U>(arr: Array<U>, opt?: { dim: string }): U[]
 }
 
-export const unique: IUnique = function <U>($arr: U[]): U[] {
+export const H_Unique: IUnique = function <U>($arr: U[], $opt?: { dim: string }): U[] {
   let _Arr: U[]
-  _Arr = Array.from(new Set($arr))
+  if ($opt?.dim) {
+    const { dim } = $opt
+    const arrDimMap: Map<string | number, U> = new Map()
+    $arr.forEach($it => {
+      arrDimMap.set($it[dim], $it)
+    })
+    const uniqueArrDimKs = Array.from(new Set($arr.map($it => $it[dim])))
+    _Arr = uniqueArrDimKs.map($uniqueDK => arrDimMap.get($uniqueDK))
+  } else {
+    _Arr = Array.from(new Set($arr))
+  }
+
   return _Arr
 }
 
@@ -129,7 +140,7 @@ interface MikuBase64 {
   (_f_: Blob, _es_?: number): Promise<TConvertIMGBase64Return>
 }
 
-export const getBase64OfMiku_: MikuBase64 = ($file, $ExpectedSize = 100) => {
+export const H_getBase64: MikuBase64 = ($file, $ExpectedSize = 100) => {
   return new Promise(($resolve, $reject) => {
     const reader = createFileReader($file)
 
