@@ -47,7 +47,7 @@ export function mockFormModel($formFieldNames = zzFields) {
             </div>
           ]
         },
-        isFilter: () => true,
+        isFilter: () => void 0,
         isVirtual: true, // ? 开启虚拟滚动后, 选项的模糊匹配会局限于 当前可视选项数据围内~~emmm想办法解决下这个问题
         type: "SLT" // ? 选择框类型
       }
@@ -90,7 +90,7 @@ export function mockFormModel($formFieldNames = zzFields) {
           const limitShowNumber = 6
           const ShowsOptIn6 = curInputIndex < limitShowNumber
           return [
-              ShowsOptIn6 ? (
+            ShowsOptIn6 ? (
               <div>{curInputVal.MSLabel}</div>
             ) : null,
             <div>
@@ -100,8 +100,8 @@ export function mockFormModel($formFieldNames = zzFields) {
           ]
         },
         isMulti: true,
-        isFilter: () => true,
-        // isVirtual: true, // ? 开启虚拟滚动后, 选项的模糊匹配会局限于 当前可视选项数据范围内~~emmm想办法解决下这个问题
+        isFilter: () => void 0,
+        isVirtual: true, // ? 开启虚拟滚动后, 选项的模糊匹配会局限于 当前可视选项数据范围内~~emmm想办法解决下这个问题
         type: 'SLT' // ? 选择框类型
       }
     } else if ($FieldName === 'like') {

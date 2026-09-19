@@ -1,3 +1,6 @@
+import { _TypeOf } from "@k1/utils";
+import { isVNode, VNode } from "vue";
+
 interface IUnique {
   <U>(arr: Array<U>, opt?: { dim: string }): U[]
 }
@@ -17,6 +20,19 @@ export const H_Unique: IUnique = function <U>($arr: U[], $opt?: { dim: string })
   }
 
   return _Arr
+}
+
+export const H_FilterText = ($targetStr: (string | VNode)[] | null, $searchingText: string) => {
+  if (!$targetStr?.length || !$searchingText?.length) return false
+  function walkVNodeText($vNode: (string | VNode)[] | string | VNode) {
+    if (_TypeOf($vNode) === 'string') return [$vNode]
+    if (_TypeOf($vNode) === 'array') return $vNode.map(walkVNodeText).flat()
+    if (isVNode($vNode)) return walkVNodeText($vNode.children)
+    return []
+  }
+
+  const pickVNodeCttList = walkVNodeText($targetStr)
+  return pickVNodeCttList.some($ctt => $ctt.includes($searchingText))
 }
 
 interface IIsNumber {

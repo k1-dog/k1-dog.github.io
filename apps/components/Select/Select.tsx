@@ -7,7 +7,7 @@ import {
 
 import MikuTrans from '../Transtions/index.js'
 import M9Icon from '@k1/styles/assets/_'
-import { __on, __off, HangRoot, H_Unique } from '@k1/utils'
+import { __on, __off, HangRoot, H_Unique, H_FilterText } from '@k1/utils'
 
 import {
   preCls, mselect_inner_preCls, mselect_inner_arrowCls, mselect_options_preCls,
@@ -22,7 +22,7 @@ const CheckboxItem = CheckBox.Item
 
 const { Expand } = MikuTrans
 
-type MS_OPT = { MSVal: number | string, MSLabel: VNode[], selected: boolean }
+type MS_OPT = { MSVal: number | string, MSLabel: VNode[] | string, selected: boolean }
 
 type MS_OPTS = MS_OPT[]
 
@@ -51,7 +51,7 @@ export interface MSelectProps {
   /**
    * @description 开启__filter-option__属性时::需要传递一个过滤回调Fn
    */
-  onFilter?: (opt: MS_OPT, searchV: string) => boolean | void;
+  onFilter?: (opt: MS_OPTS, searchV: string) => MS_OPTS | void;
 };
 
 interface MSelectState {
@@ -99,7 +99,7 @@ export default defineComponent({
       type: Object as PropType<MSelectProps['replaceFields']>,
       default: () => ({ value: 'value', label: 'label' })
     },
-    onFilter: { type: Function as PropType<MSelectProps['onFilter']>, default: () => true }
+    onFilter: { type: Function as PropType<MSelectProps['onFilter']>, default: () => void 0 }
   },
   emits: ['select', 'filter', 'update:modelValue'],
   setup (props, ctx) {
@@ -327,8 +327,11 @@ export default defineComponent({
       }
 
       const { onFilter } = props
-      // * 用过滤函数筛选新可视选项 - 赋值给可视数组 options1
-      const filteredOptions = _options_0.filter($opt => onFilter?.($opt, $filteringVal))
+      // * 从完整的存储副本中, 利用过滤函数筛选新可视选项 - 赋值给可视数组 options1
+      const filteredOptions: MS_OPTS = onFilter?.(_options_0, $filteringVal) || _options_0.filter(
+        $op => H_FilterText(Array.isArray($op.MSLabel) ? $op.MSLabel : [$op.MSLabel], $filteringVal)
+      )
+
       state.options_1 = filteredOptions
     }
 

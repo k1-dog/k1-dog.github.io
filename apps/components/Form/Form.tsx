@@ -74,9 +74,10 @@ const SelectUI = function SelectUI<FKEY4>(
   const filterConf = isFilter
     ? {
         filterable: true,
-        onFilter: ($searchingEvent: any) => {
+        onFilter: ($OPTS, $searchingEvent: any) => {
           const { value: searchingText } = $searchingEvent
           // ? 本来想监听筛选事件 -改善虚拟滚动下的筛选功能 -结果 GG 了
+          return isFilter?.($OPTS, searchingText)
         }
       }
     : { filterable: false }
