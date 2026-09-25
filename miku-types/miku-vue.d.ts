@@ -28,7 +28,7 @@ declare module '*.vue' {
   }
 }
 
-declare module '*.webp'
+// declare module '*.webp'
 
 declare type MVElementR = ComponentPublicInstance | Element | null
 

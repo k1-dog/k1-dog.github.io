@@ -7,7 +7,7 @@ export interface MSpinProps {
   /**
    * @spinning 加载 指定是否为加载状态， 默认为加载中
    * */
-  spinning: boolean | undefined 
+  spinning: boolean | undefined
   /**
    * @size 组件大小，可选值为 small default， large，默认为default
    */
@@ -18,7 +18,7 @@ export interface MSpinProps {
   context?: string
 }
 
-export default defineComponent ({
+export default defineComponent({
   name: 'M9Spin',
   props: {
     spinning: {
@@ -39,60 +39,60 @@ export default defineComponent ({
       default: '加载中'
     }
   },
-  setup (props, ctx) {
+  setup(props, ctx) {
     const SpinRef: Ref<any> = ref(null)
     const SpinLoadingRef: Ref<any> = ref(null)
     const SpinTextRef: Ref<any> = ref(null)
     const SpinInnerRef: Ref<any> = ref(null)
 
-    function walkFindPositionParent (element: HTMLElement) {
-      let parentNode = element.parentElement
-      while (parentNode !== document.documentElement && parentNode) {
-        if (parentNode.style['position']) {
-          const pos = parentNode.style['position']
+    function walkFindPositionParent($element: HTMLElement) {
+      let _parentNode = $element.parentElement
+      while (_parentNode !== document.documentElement && _parentNode) {
+        if (_parentNode.style['position']) {
+          const pos = _parentNode.style['position']
           if (pos === 'relative' || pos === 'absolute') {
             break
           }
         }
-        parentNode = parentNode.parentElement
+        _parentNode = _parentNode.parentElement
       }
 
-      return parentNode
+      return _parentNode
     }
 
-    function loadingEffect () {
-      let innerHeight, innerWidth, innerZIndex, _left, _top
+    function loadingEffect() {
+      let _innerHeight, _innerWidth, _innerZIndex, _left, _top
       const specifyEl: undefined | HTMLElement = props.to?.()
-      const _childrenEl = specifyEl || SpinInnerRef.value.$ && SpinInnerRef.value.$.vnode.el || SpinInnerRef.value
-      if (_childrenEl) {
-        const { width, height, left, top } = _childrenEl.getBoundingClientRect()
-        innerWidth = width
-        if (_childrenEl.scrollHeight > _childrenEl.clientHeight) {
-          innerWidth -= 17
+      const childrenEl = specifyEl || SpinInnerRef.value.$ && SpinInnerRef.value.$.vnode.el || SpinInnerRef.value
+      if (childrenEl) {
+        const { width, height, left, top } = childrenEl.getBoundingClientRect()
+        _innerWidth = width
+        if (childrenEl.scrollHeight > childrenEl.clientHeight) {
+          _innerWidth -= 17
         }
-        innerHeight = height
-        if (_childrenEl.scrollWidth > _childrenEl.clientWidth) {
-          innerHeight -= 17
+        _innerHeight = height
+        if (childrenEl.scrollWidth > childrenEl.clientWidth) {
+          _innerHeight -= 17
         }
-        innerZIndex = _childrenEl.style.zIndex || 0
+        _innerZIndex = childrenEl.style.zIndex || 0
         _left = left
         _top = top
       }
-      
-      SpinLoadingRef.value.style.zIndex = innerZIndex + 2
-      SpinLoadingRef.value.style.width = `${Math.floor(innerWidth * 0.4)}px`
-      SpinLoadingRef.value.style.height = SpinLoadingRef.value.style.width
 
-      SpinTextRef.value.style.zIndex = innerZIndex + 4
+      SpinLoadingRef.value.style.zIndex = _innerZIndex + 2
+      // Loading ball size is capped with min() in Spin.scss (auto-adaptive within bounds),
+      // no JS-driven width growing with the masked container (infinite inflation bug)
 
-      const parentNode = walkFindPositionParent(_childrenEl)
+      SpinTextRef.value.style.zIndex = _innerZIndex + 4
+
+      const parentNode = walkFindPositionParent(childrenEl)
       const { left: pLeft, top: pTop } = parentNode?.getBoundingClientRect()!
 
-      SpinRef.value.style.zIndex = innerZIndex + 1
+      SpinRef.value.style.zIndex = _innerZIndex + 1
       SpinRef.value.style.top = `${_top - pTop}px`
       SpinRef.value.style.left = `${_left - pLeft}px`
-      SpinRef.value.style.width = `${innerWidth}px`
-      SpinRef.value.style.height = `${innerHeight}px`
+      SpinRef.value.style.width = `${_innerWidth}px`
+      SpinRef.value.style.height = `${_innerHeight}px`
     }
 
     onMounted(() => {
@@ -101,12 +101,12 @@ export default defineComponent ({
       }
     })
 
-    watch(() => props.spinning, (isLoading) => {
-      if (isLoading && SpinInnerRef.value) {
+    watch(() => props.spinning, ($isLoading) => {
+      if ($isLoading && SpinInnerRef.value) {
         loadingEffect()
       }
     })
-    
+
     return {
       SpinRef, SpinLoadingRef, SpinTextRef, SpinInnerRef
     }
@@ -126,15 +126,15 @@ export default defineComponent ({
     return (
       <>
         {
-          <div v-show={spinning} ref={(_r_: any) => this.SpinRef = _r_} className={spin_cls} style={style}>
-            <div ref={(_spinLoadingRef_: any) => this.SpinLoadingRef = _spinLoadingRef_} className={`${spin_cls}__loading`}>
+          <div v-show={spinning} ref={($_r_: any) => this.SpinRef = $_r_} className={spin_cls} style={style}>
+            <div ref={($_spinLoadingRef_: any) => this.SpinLoadingRef = $_spinLoadingRef_} className={`${spin_cls}__loading`}>
               <div className={`${spin_cls}__loading--ball`}></div>
             </div>
-            <div ref={(_spinTextRef_: any) => this.SpinTextRef = _spinTextRef_} className={`${spin_cls}__text`}>{text}</div>
+            <div ref={($_spinTextRef_: any) => this.SpinTextRef = $_spinTextRef_} className={`${spin_cls}__text`}>{text}</div>
           </div>
         }
-        { h(childrenVNode[0], { ref: (_r_: any) => this.SpinInnerRef = _r_}, undefined) }
+        {h(childrenVNode[0], { ref: ($_r_: any) => this.SpinInnerRef = $_r_ }, undefined)}
       </>
     )
-  } 
+  }
 })

@@ -1,11 +1,61 @@
-.m9-vscroller {
+// Shared scrolling positioning (both self-scroll and outer-scroll modes)
+@mixin m9-vscroller-viewport {
   position: relative;
-  overflow-y: scroll;
-  &__bar {
-    width: 1px;
-    z-index: -1;
-    position: absolute;
-    top: 0;
-    left: 0;
+}
+
+// Spin mask: sticky to the viewport top-left, sized to the visible window
+@mixin m9-vscroller-spin-mask($width, $height) {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: $width !important;
+  height: $height !important;
+  z-index: 2;
+}
+
+// Self-scroll mode (Select): the component itself is the scroll container
+.m9-vscroller {
+  @include m9-vscroller-viewport;
+  // Default: inherit the parent container height when no fixed vsStyle.h is provided (e.g. Select)
+  // When vsStyle.h > 0, an inline height/width from the component overrides this rule.
+  height: 100%;
+  overflow-y: auto;
+  // Horizontal overflow is clipped: horizontal scrolling is owned by the outer
+  // container (e.g. M9Table viewport), so the virtual scroller never shows its own
+  // horizontal scrollbar (avoid double horizontal scrollbars that drift apart).
+  overflow-x: hidden;
+
+  > .miku-spin {
+    @include m9-vscroller-spin-mask(100%, 100%);
+  }
+}
+
+// Outer-scroll mode (Table): an external container (viewport) owns scrolling in
+// both directions; this component only grows to push the scroll distance and clips its rows.
+.m9-vscroller__outer {
+  @include m9-vscroller-viewport;
+  // Provide scroll distance to the outer container by growing in flow, do not scroll itself
+  overflow: visible;
+
+  > .miku-spin {
+    // Sized by CSS vars injected from the component: outer viewport width x visible height
+    @include m9-vscroller-spin-mask(var(--vs-w), var(--vs-h));
+    // Sticky mask still occupies vs-h of document flow — collapse it so root height is
+    // driven solely by m9-vscroller__bar (unique spacer); otherwise scrollHeight would be
+    // one extra viewport taller than the real content.
+    margin-bottom: calc(var(--vs-h) * -1);
+  }
+}
+
+.m9-vscroller__bar {
+  width: 1px;
+  z-index: -1;
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  // 外滚模式下 vscroller-bar 滚动条用static放回文档流去占位撑高
+  .m9-vscroller__outer & {
+    position: static;
   }
 }

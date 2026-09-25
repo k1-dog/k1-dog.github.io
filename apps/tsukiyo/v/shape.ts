@@ -20,8 +20,12 @@ export const Shapes = {
   rect: ($w: number, $h: number, $fill?: number) => Shape(Prim.Rect, { x: _, y: _, w: $w, h: $h }, $fill),
   circle: ($r: number, $fill?: number) => Shape(Prim.Circle, { x: _, y: _, r: $r }, $fill),
   line: ($fill?: number) => Shape(Prim.Line, { x: _, y: _, x2: _, y2: _ }, $fill),
-  arc: ($r: number, $startAng: number, $endAng: number, $fill?: number) =>
+  // arc — 角度传 `_`（占位）交系统按 value 比例分配（饼图扇段）；显式角度 = 固定扇（散点满圆）
+  arc: ($r: number, $startAng: CoordVal, $endAng: CoordVal, $fill?: number) =>
     Shape(Prim.Arc, { x: _, y: _, r: $r, startAng: $startAng, endAng: $endAng }, $fill),
+  // sector — 扇段语法糖（arc 角度占位派生）：角度交 paths 按 value 比例分配（饼图语义，用户零 `_` 依赖）
+  sector: ($r: number, $fill?: number) =>
+    Shape(Prim.Arc, { x: _, y: _, r: $r, startAng: _, endAng: _ }, $fill),
   text: ($text: string, $fill?: number) => Shape(Prim.Text, { x: _, y: _, text: $text }, $fill),
   // 曲线 — 与 Line 同源占位（x,y 起点 + w,h Δ偏移），paths 组装 Δ
   curve: ($fill?: number) => Shape(Prim.Curve, { x: _, y: _, w: _, h: _ }, $fill),
@@ -44,6 +48,7 @@ export function pointTask($model: TsuModel, $pointFn: PointFn): void {
   for (let _i = 0; _i < $model.elements.length; _i++) {
     const el = $model.elements[_i]
     const result = $pointFn(el, plugins, _i)
+    if (!result) continue   // null/undefined 守卫 — 条件跳过元素
     const descs = Array.isArray(result) ? result : [result]
 
     for (const desc of descs) {
@@ -62,12 +67,12 @@ export function pointTask($model: TsuModel, $pointFn: PointFn): void {
       const { opts } = desc
       if (opts.w !== undefined && opts.w !== _) $model.w[_writeIdx] = opts.w as number
       if (opts.h !== undefined && opts.h !== _) $model.h[_writeIdx] = opts.h as number
-      // Arc/Circle r → aux[0]；startAng/endAng → aux[1]/aux[2]（coord 可覆写）
+      // Arc/Circle r → aux[0]；startAng/endAng → aux[1]/aux[2]；角度占位 `_` 写 NaN 哨兵（paths 按值分配）
       if (opts.r !== undefined && opts.r !== _) {
         const a = _writeIdx * GEO_SLOTS_EACH_ELEM
         $model.aux[a] = opts.r as number
-        $model.aux[a + 1] = (opts.startAng as number) ?? 0
-        $model.aux[a + 2] = (opts.endAng as number) ?? TAU
+        $model.aux[a + 1] = opts.startAng === _ ? NaN : (opts.startAng as number) ?? 0
+        $model.aux[a + 2] = opts.endAng === _ ? NaN : (opts.endAng as number) ?? TAU
       }
       // Triangle 第三顶点 C — x2/y2 → aux[0]/aux[1]
       if (desc.type === Prim.Triangle) {

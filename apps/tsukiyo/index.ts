@@ -19,7 +19,8 @@ export { Tsukiyo } from './middleware/index'
 export { Shape, Shapes, rgba } from './v/shape'
 export type { PointFn } from './v/shape'
 export { Hm_palette as palette } from './helper/maths'
-export { coordTask, resolveCoordLocator, radarRadius } from './v/coord'
+export { coordTask, resolveCoordLocator, radarRadius, Axis } from './v/coord'
+export type { AxisKit } from './v/coord'
 export { pathsTask } from './v/paths'
 export type { PathsHook } from './v/paths'
 
@@ -41,7 +42,8 @@ export { createRenderer } from './v/render'
 export { WebGPU3D } from './v/render-3d'
 export type {
   Vec2, Bounds, Element, DimConf, ShapeDesc, RenderMode,
-  CoordRule, CoordCtx, Task, Renderer, Spatial, Plugins, Schedulable,
+  AxisRule, ITsukiyoLocator, CoordRule, TsukiyoInit, CoordCtx,
+  Task, Renderer, Spatial, Plugins, Schedulable,
 } from './yomi'
 export { Prim, _ } from './yomi'
 

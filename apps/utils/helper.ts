@@ -175,3 +175,29 @@ export const H_getBase64: MikuBase64 = ($file, $ExpectedSize = 100) => {
     reader.onerror = ($error) => $reject($error)
   })
 }
+
+export const H_formatFileSize = ($fileSize: number, $precision: number = 2) => {
+  function formatPrecision($floatNum: number) {
+    $precision = $precision > 0 ? $precision : 1
+    const scaleArg0 = Math.pow(10, 1)
+    const scaleArg1 = Math.pow(10, $precision)
+    const scaleArg2 = Math.pow(10, $precision + 1)
+    const baseNum = Math.floor($floatNum * scaleArg2)
+    const left = Math.floor(baseNum / scaleArg0)
+    const right = baseNum % scaleArg0
+
+    return (left + (right >= 5 ? 1 : 0)) / scaleArg1
+  }
+  const unitMB = $fileSize / 1024 / 1024
+  if (unitMB >= 1) {
+    return `${formatPrecision(unitMB)} ＊Mb`
+  }
+  const unitKB = $fileSize / 1024
+  if (unitKB >= 1) {
+    return `${formatPrecision(unitKB)} ＊Kb`
+  }
+  const unitB = $fileSize
+  if (unitB >= 1) {
+    return `${formatPrecision(unitB)} ＊b`
+  }
+}

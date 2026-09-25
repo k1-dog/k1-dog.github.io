@@ -7,6 +7,9 @@ $miku-table-cell-size : 1rem;
 // ! 至关重要的可视窗口
 // ! 实现虚拟滚动
 // ! 实现表格的单元格吸附
+// ! The outer viewport is the single scroll container in both directions (header + body
+// ! scroll together horizontally, vertical distance is provided by the inner M9VScroller's
+// ! outer-spacer). Single scroll container keeps position:sticky fixed cells working.
 .#{$miku-table-preCls}--viewport {
   position: relative;
   overflow: auto;

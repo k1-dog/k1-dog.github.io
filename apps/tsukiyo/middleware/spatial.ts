@@ -273,6 +273,14 @@ export class Grid implements Spatial {
         pos[1] < min[1] || pos[1] > max[1]
       ) continue
 
+      // Circle 精筛 — 圆心距（AABB 四角误命中剔除）
+      if ($m.type[slot] === Prim.Circle) {
+        const r = $m.aux[slot * GEO_SLOTS_EACH_ELEM]
+        const dx = pos[0] - $m.x[slot]
+        const dy = pos[1] - $m.y[slot]
+        if (dx * dx + dy * dy > r * r) continue
+      }
+
       // Arc 精筛 — 半径 + 角度（饼图 AABB 全重叠需角度区分）
       if ($m.type[slot] === Prim.Arc) {
         const a = slot * GEO_SLOTS_EACH_ELEM

@@ -102,7 +102,7 @@ $sContainerStyles: (
 
     &--viewport {
       height: 15rem;
-      overflow-y: scroll;
+      // Scrolling is handled by the inner m9-vscroller virtual scroll container
     }
 
     &--row {

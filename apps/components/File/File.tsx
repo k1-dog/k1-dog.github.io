@@ -2,7 +2,7 @@ import { preCls, uploaderCls } from './index'
 import Imager from './Imager.js'
 import M9Icon from '@k1/styles/assets/_.js'
 import xhrUploadJS from './xhr-upload.js'
-import { H_getBase64 } from '@k1/utils'
+import { H_getBase64, H_formatFileSize } from '@k1/utils'
 import { M9WebAdaptor } from '../Grid/Grid.js'
 
 import { MU_PROGRESS, FT, MFileState, UploaderProps, UploadListProps, MU_FILE, UPSTATUS } from './Type.js'
@@ -18,8 +18,8 @@ const UploadHeader = () => {
     </div>
   )
 }
-const Uploader = (props: Partial<UploaderProps>) => {
-  const { onChange, onSuccess, onFailed, onProgress } = props
+const Uploader = ($props: Partial<UploaderProps>) => {
+  const { onChange, onSuccess, onFailed, onProgress } = $props
 
   const uploader_label_cls = `${preCls}__uploader--label`
   const uploader_input_cls = `${preCls}__uploader--input`
@@ -27,30 +27,30 @@ const Uploader = (props: Partial<UploaderProps>) => {
 
   return (
     <>
-      <label className={uploader_label_cls} htmlFor={uploader_id_cls} m9-web-dom="::document => md -> height: 10rem; flex-shrink: 0; width:3rem"/>
+      <label className={uploader_label_cls} htmlFor={uploader_id_cls} m9-web-dom="::document => md -> height: 10rem; flex-shrink: 0; width:3rem" />
       <input type='file' hidden id={uploader_id_cls} name={uploader_input_cls} onChange={onChange} multiple={false} />
     </>
   )
 }
-const UploadList = (props: UploadListProps) => {
-    const { fileList, showPreviewer, onRemove } = props
+const UploadList = ($props: UploadListProps) => {
+  const { fileList, showPreviewer, onRemove } = $props
 
-    const getStatusCls = (FStatus: UPSTATUS) => {
-      const fileStatusCls = classnames('file-status', {
-        'file-success': FStatus === UPSTATUS.OK,
-        'file-uploading': FStatus === UPSTATUS.ING,
-        'file-failed': FStatus === UPSTATUS.FAIL
-      })
-      return fileStatusCls
-    }
+  const getStatusCls = ($FStatus: UPSTATUS) => {
+    const fileStatusCls = classnames('file-status', {
+      'file-success': $FStatus === UPSTATUS.OK,
+      'file-uploading': $FStatus === UPSTATUS.ING,
+      'file-failed': $FStatus === UPSTATUS.FAIL
+    })
+    return fileStatusCls
+  }
 
-    return (
-      <div className={`${preCls}--filelist`} m9-web-dom="::document => md -> display: flex;flex-wrap: wrap;max-height: 10rem">
+  return (
+    <div className={`${preCls}--filelist`} m9-web-dom="::document => md -> display: flex;flex-wrap: wrap;max-height: 10rem">
       <TransitionGroup name={`${preCls}--animation`}>
         {
-          fileList.map((file) => (
+          fileList.map(($file) => (
             <div
-              key={file._MFID_}
+              key={$file._MFID_}
               className={`${preCls}--filelist__item`}
               m9-web-dom="::document => md -> width: 45%;margin: 6px;"
             >
@@ -58,53 +58,58 @@ const UploadList = (props: UploadListProps) => {
                 style={{
                   float: 'left',
                   cursor: 'pointer',
-                  width: `${file['width'] || 0}px`,
-                  height: `${file['height'] || 0}px`,
+                  width: `${$file['width'] || 0}px`,
+                  height: `${$file['height'] || 0}px`,
                   borderRadius: `20px`
                 }}
-                src={file['imgUrl']}
-                alt={file.name}
-                onClick={() => showPreviewer(file)}
+                src={$file['imgUrl']}
+                alt={$file.name}
+                onClick={() => showPreviewer($file)}
               />
               <div className='float-with-img'>
                 <div className='desc-wrap'>
-                  <span className='file-name'>{file.name}</span>
-                  <span className='file-percentage'>{file.percentage + '%'}</span>
-                  <span className={getStatusCls(file.status)}></span>
-                  <span
-                    className='file-close'
-                    onClick={() => { onRemove(file) }}></span>
+                  <span className='file-name'>{$file.name}</span>
+                  <br />
+                  <span className='file-size'>{H_formatFileSize($file.size)}</span>
+                  <div style={{ display: 'flex' }}>
+                    <span className='file-percentage'>{$file.percentage + '%'}</span>
+                    <span className={getStatusCls($file.status)}></span>
+                    <span
+                      className='file-close'
+                      onClick={() => { onRemove($file) }}
+                    ></span>
+                  </div>
                 </div>
-                <div className='progress-bar' style={{ width: `${file.percentage}%` }}></div>
+                <div className='progress-bar' style={{ width: `${$file.percentage}%` }}></div>
               </div>
             </div>
           ))
         }
       </TransitionGroup>
-      </div>
-    )
+    </div>
+  )
 }
 
 export default defineComponent({
   name: 'M9Filer',
-  setup () {
+  setup() {
     const state = reactive<MFileState>({ fileList: [], everyImgSize: 47, imager: null, showImager: false })
     // 弹出 - 图片预览器
-    function onPreview (file: FT) {
+    function onPreview($file: FT) {
       const imager = {
-        _MFID_: file._MFID_,
-        name: file['name'],
-        imgUrl: file['imgUrl'],
-        width: file['width'],
-        height: file['height']
+        _MFID_: $file._MFID_,
+        name: $file['name'],
+        imgUrl: $file['imgUrl'],
+        width: $file['width'],
+        height: $file['height']
       }
-      
+
       state.imager = imager
       state.showImager = true
     }
 
     // 关闭 - 图片预览器
-    function onClosePreview () {
+    function onClosePreview() {
       state.imager = null
       state.showImager = false
     }
@@ -116,13 +121,13 @@ export default defineComponent({
       }
     })()
 
-    function U$PushFile(f: FT): FT[] {
+    function U$PushFile($f: FT): FT[] {
       const filelist = state.fileList || []
-      filelist.push(f)
+      filelist.push($f)
       return filelist
     }
 
-    function U$Start (FStat: {
+    function U$Start($FStat: {
       imgUrl: string
       percentage: number
       width: number
@@ -130,14 +135,14 @@ export default defineComponent({
       rawFile: MU_FILE
     }): void {
       const f: FT = {
-        _MFID_: FStat['rawFile']._MFID_,
-        name: FStat['rawFile'].name,
-        ...FStat,
+        _MFID_: $FStat['rawFile']._MFID_,
+        name: $FStat['rawFile'].name,
+        ...$FStat,
         active: true,
         status: UPSTATUS.OK,
         $xhr: null
       } as FT
-  
+
       const fileList = U$PushFile(f)
       state.fileList = fileList
       const XHRUP_Config = {
@@ -150,125 +155,127 @@ export default defineComponent({
       f.$xhr = { _kill: xhrKill, xhr }
     }
 
-    function updateUI () {
+    function updateUI() {
       state.fileList = [...state.fileList]
     }
 
-    function U$GetFile(F: MU_FILE): FT | null {
+    function U$GetFile($F: MU_FILE): FT | null {
       const fileList = state.fileList
       if (!fileList || !fileList.length) {
         return null
       }
-  
-      return fileList.find((f) => f._MFID_ === F._MFID_) as any
+
+      return fileList.find(($f) => $f._MFID_ === $F._MFID_) as any
     }
-  
-    function U$OnProgress(pe: MU_PROGRESS, file: MU_FILE): void {
-      
-      const _File = U$GetFile(file)
-  
-      if (!_File) {
+
+    function U$OnProgress($pe: MU_PROGRESS, $file: MU_FILE): void {
+
+      const File = U$GetFile($file)
+
+      if (!File) {
         return void 0
       }
-  
-      _File.status = UPSTATUS.ING
-      _File.percentage = pe.percentage || 0
-  
+
+      File.status = UPSTATUS.ING
+      File.percentage = $pe.percentage || 0
+
       updateUI()
     }
 
     // 文件上传后 - 变化回调事件
-    function onFileChange (evt: MReturnParam<UploaderProps['onChange']>) {
-      const fileList = evt.currentTarget.files
-  
+    function onFileChange($evt: Parameters<UploaderProps['onChange']>[0]) {
+      const fileList = $evt.currentTarget.files
+
       if (!fileList || !fileList.length) return
-  
-      let base64URI: string, NW: number, NH: number
-  
+
+      let _base64URI: string, _NW: number, _NH: number
+
       const file = fileList[0]
-  
+
       const { everyImgSize } = state
-  
-      H_getBase64(file, everyImgSize).then((newImgStat) => {
-        base64URI = newImgStat.uri
-  
-        NW = newImgStat.width
-  
-        NH = newImgStat.height
-  
-        let imgStat = Object.assign({}) // creating copy of object
-  
-        imgStat.width = NW
-  
-        imgStat.height = NH
-  
+
+      H_getBase64(file, everyImgSize).then(($newImgStat) => {
+        _base64URI = $newImgStat.uri
+
+        _NW = $newImgStat.width
+
+        _NH = $newImgStat.height
+
+        let _imgStat = Object.assign({}) // creating copy of object
+
+        _imgStat.width = _NW
+
+        _imgStat.height = _NH
+
+        _imgStat.size = file.size
+
         file._MFID_ = U$GetFID()
-  
+
         U$Start({
-          imgUrl: base64URI,
+          imgUrl: _base64URI,
           percentage: 0,
-          ...imgStat,
+          ..._imgStat,
           rawFile: file
         })
       })
     }
 
-    function isRemoveOk(file: FT): boolean {
+    function isRemoveOk($file: FT): boolean {
       const { fileList } = state
-      const _FileIndex = fileList.findIndex((File) => File._MFID_ === file._MFID_)
-  
-      if (_FileIndex === -1) {
+      const FileIndex = fileList.findIndex(($File) => $File._MFID_ === $file._MFID_)
+
+      if (FileIndex === -1) {
         return false
       }
-  
-      const _file = fileList[_FileIndex]
-      _file['active'] = false
-      fileList.splice(_FileIndex, 1)
+
+      const file = fileList[FileIndex]
+      file['active'] = false
+      fileList.splice(FileIndex, 1)
 
       return true
     }
 
     // 文件列表 - 删除事件
-    function onRemove (file: FT): void {
-      const isRe = isRemoveOk(file)
-  
+    function onRemove($file: FT): void {
+      const isRe = isRemoveOk($file)
+
       if (!isRe) { return void 0 }
 
       // ! 这里有个优化点 - 如果文件从列表中成功移除的话, 那么同步触发该文件上传的xhr销毁句柄, 节省内存空间
-      const $f_xhr = file.$xhr
+      const $f_xhr = $file.$xhr
       $f_xhr && $f_xhr._kill($f_xhr.xhr)
-  
+
       updateUI()
     }
 
     // 图片预览器 - 切换其他图片去预览 (下一张 | 上一张)
-    function U$TakeAnotherImageToPlay (isPrevious = false) {
+    function U$TakeAnotherImageToPlay(isPrevious = false) {
       const { fileList, imager } = state
-      const _FileIndex = fileList.findIndex((File) => File._MFID_ === imager!._MFID_)
-  
+      const FileIndex = fileList.findIndex(($File) => $File._MFID_ === imager!._MFID_)
+
       if (
-        (isPrevious === false && _FileIndex >= fileList.length - 1)
+        (isPrevious === false && FileIndex >= fileList.length - 1)
         ||
-        (isPrevious === true && _FileIndex <= 0)
+        (isPrevious === true && FileIndex <= 0)
       ) {
         return void 0
       }
-  
+
       if (isPrevious === true) {
-        const prevImager = fileList[_FileIndex - 1]
+        const prevImager = fileList[FileIndex - 1]
         state.imager = prevImager
       } else if (isPrevious === false) {
-        const nextImager = fileList[_FileIndex + 1]
+        const nextImager = fileList[FileIndex + 1]
         state.imager = nextImager
       }
-  
+
       return
     }
 
     return { state, onPreview, onClosePreview, onFileChange, onRemove, U$TakeAnotherImageToPlay }
   },
 
-  render () {
+  render() {
     const { onPreview, onClosePreview, onFileChange, onRemove, U$TakeAnotherImageToPlay } = this
     const { fileList = [], showImager, imager } = this.state
 
@@ -282,20 +289,20 @@ export default defineComponent({
 
     return (
       <M9WebAdaptor>
-      <div className={preCls} m9-web-dom="::document => md -> width: unset">
-        {[
-          fileX,
-          <Imager
-            isShow={showImager}
-            width={imager && imager['width']}
-            height={imager && imager['height']}
-            preCls={preCls}
-            src={imager && imager['imgUrl']}
-            onShowCallback={onClosePreview}
-            onPlayOtherImageCallback={U$TakeAnotherImageToPlay}
-          />
-        ]}
-      </div>
+        <div className={preCls} m9-web-dom="::document => md -> width: unset">
+          {[
+            fileX,
+            <Imager
+              isShow={showImager}
+              width={imager && imager['width']}
+              height={imager && imager['height']}
+              preCls={preCls}
+              src={imager && imager['imgUrl']}
+              onShowCallback={onClosePreview}
+              onPlayOtherImageCallback={U$TakeAnotherImageToPlay}
+            />
+          ]}
+        </div>
       </M9WebAdaptor>
     )
   }

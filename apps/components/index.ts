@@ -50,7 +50,7 @@ const vue3Install = ($app: App) => {
 
 export const M9MsgX = M9Msg
 export const M9DragX = M9Drag
-export { Tsukiyo as K1TsukiyoX, Shapes, rgba, Prim as K1PrimX } from '../tsukiyo'
+export { Tsukiyo as K1TsukiyoX, Shapes, rgba, Prim as K1PrimX, Axis as K1AxisX } from '../tsukiyo'
 
 export const M9InstallX = vue3Install
 

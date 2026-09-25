@@ -33,6 +33,10 @@ $miku-spin-preCls: "#{$m9-preCls}-spin";
   // ? 小球 - 弹跳上楼梯的加载动画
   &__loading {
     position: absolute;
+    // Adaptive with an upper cap: min(80px, 35%) - relative to the mask container, so the
+    // ball auto-shrinks on small containers but never inflates boundless on huge ones.
+    width: min(80px, 35%);
+    height: min(80px, 35%);
     &--ball {
       position: relative;
       width: 100%;

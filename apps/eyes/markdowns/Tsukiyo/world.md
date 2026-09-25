@@ -115,7 +115,47 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
 > **paths 拦截说明**：`coord('Bar')` 将同列的所有柱子定位到列中心（叠加），`groupBarHook` 在 paths 阶段拦截，按 `dimY` 索引（组别）在列内做水平偏移，实现三组并列。hook 接收 `($model, $rule, $ctx)` — `$ctx` 为 coord 产出的 CoordCtx（含 width/height/ruler）。hook 写绝对值（幂等），**始终执行不受 guard 约束** — 因为 coord 每帧重写 x 为列中心，hook 必须同步覆写为分组位置；内置 `pathsTask` 写相对偏移（Δ）则保留 guard 省性能。
 
 
+### 散点图（Point）
 
+散点图 = `Axis.xy()` 组合子（双数值连续轴）+ `point(circle)` 原语映射的组合 — 无需内置图表类型。
+
+**示例**
+
+<div ref="pointRef" class="tsukiyo-chart" style="height:200px"></div>
+
+**代码**
+
+```html
+<template>
+  <div ref="pointRef" style="width:100%;height:200px"></div>
+</template>
+
+<script setup>
+  import { getCurrentInstance, onMounted, ref } from 'vue'
+  const { proxy } = getCurrentInstance()
+  const { $K1TsukiyoX: Tsukiyo, $K1ShapesX: Shapes, $K1RgbaX: rgba, $K1AxisX: Axis } = proxy
+
+  const pointRef = ref()
+  onMounted(async () => {
+    const canvas = document.createElement('canvas')
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    pointRef.value.appendChild(canvas)
+
+    const colors = [
+      rgba(100, 149, 237, 100),
+      rgba(255, 99, 71, 100),
+      rgba(60, 179, 113, 100),
+    ]
+
+    await new Tsukiyo(canvas)
+      .input([10, 80, 45, 120, 60])       // std 快路径 → (index, value) × 5
+      .coord(Axis.xy())                   // 双数值连续轴 — 散点定位器
+      .point((el, p, i) => Shapes.circle(10, colors[i % colors.length]))
+      .draw()
+  })
+</script>
+```
 
 ### 折线图（Line）
 
@@ -161,7 +201,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
 
 ```html
 <template>
-  <div ref="sineRef" style="width:100%;height:200px"></div>
+  <div ref="sineRef" style="width:100%;height:200px;"></div>
 </template>
 
 <script setup>
@@ -171,10 +211,10 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
 
   const sineRef = ref()
 
-  // sineHook — 拦截 paths 组装，末点回绕首点形成封闭正弦曲线
+  // sinHook — 拦截 paths 组装，末点回绕首点形成封闭正弦曲线
   // 默认 pathsTask 对 Curve 末点设 Δ=0（开放折线），此处用模运算封闭
   // aux[2] 交替 -1/+1 控制弯曲方向 — 形成正弦波形（峰值交替上下）
-  const sineHook = ($model, $rule, $ctx) => {
+  const sinHook = ($model, $rule, $ctx) => {
     const n = $model.count
     for (let i = 0; i < n; i++) {
       if ($model.type[i] !== Prim.Curve) continue
@@ -198,13 +238,13 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
       .input([10, 80, 45, 120, 60])
       .coord('Line')
       .point((el, p, i) => Shapes.curve(rgba(100, 149, 237, 220)))
-      .paths(sineHook)
+      .paths(sinHook)
       .draw()
   })
 </script>
 ```
 
-> **paths 拦截说明**：与基础折线图相同的 `input` + `coord('Line')`，仅通过 `.paths(sineHook)` 改变展示形式。默认 `pathsTask` 对 Curve 末点设 Δ=0（开放折线），`sineHook` 用 `(i+1) % n` 模运算让末点回绕首点，形成封闭平滑曲线 — 体现 paths 执行流的自定义拦截能力。
+> **paths 拦截说明**：与基础折线图相同的 `input` + `coord('Line')`，仅通过 `.paths(sinHook)` 改变展示形式。默认 `pathsTask` 对 Curve 末点设 Δ=0（开放折线），`sinHook` 用 `(i+1) % n` 模运算让末点回绕首点，形成封闭平滑曲线 — 体现 paths 执行流的自定义拦截能力。
 
 
 ### 饼图（Pie）
@@ -233,6 +273,12 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
     canvas.style.height = '100%'
     pieRef.value.appendChild(canvas)
 
+    const colors = [
+      rgba(100, 149, 237, 220),
+      rgba(255, 99, 71, 220),
+      rgba(60, 179, 113, 220),
+    ]
+
     await new Tsukiyo(canvas)
       .input([
         { name: 'A', val: 30 },
@@ -241,16 +287,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
       ])
       .scale({ dimX: 'name', dimY: ['val'] })
       .coord('polar')
-      .point((el, p, i) => {
-        const colors = [
-          rgba(100, 149, 237, 220),
-          rgba(255, 99, 71, 220),
-          rgba(60, 179, 113, 220),
-          rgba(255, 165, 0, 220),
-          rgba(138, 43, 226, 220),
-        ]
-        return Shapes.arc(60, 0, Math.PI * 2, colors[i % colors.length])
-      })
+      .point((el, p, i) => Shapes.sector(60, colors[i % colors.length]))   // 扇段语法糖 — 角度按 value 比例分配
       .draw()
   })
 </script>
@@ -379,7 +416,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
       ])
       .scale({ dimX: 'name', dimY: ['val'] })
       .coord('polar')
-      .point((el, p, i) => Shapes.arc(60, 0, Math.PI * 2, rgba(100, 149, 237, 255)))
+      .point((el, p, i) => Shapes.sector(60, rgba(100, 149, 237, 255)))   // 扇段语法糖 — 角度按 value 比例分配
       .draw('3d')
   })
 </script>
@@ -394,7 +431,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
 | -------- | --------------------------------- | ----------------------------- | -------- |
 | input    | 输入阶段 - 原始数据接收器        | `(raw: any[])` | `this` |
 | scale    | 测绘阶段 - 图形维度划分器        | `(dim: DimConf)` | `this` |
-| coord    | 图形定位器 - 坐标系选取+位置定位（Bar/Line/polar/radar）| `(rule: string \| fn)`| `this` |
+| coord    | 图形定位器 - 坐标系选取+位置定位；内置名（Bar/Line/polar/radar）= 预制组合，`Axis.xy()` 等组合子可自由组装 | `(rule: string \| ITsukiyoLocator \| fn)` | `this` |
 | point    | 图形定型器 - 原语类型选择+固定几何参数 | `(fn: PointFn)` | `this`   |
 | paths    | 图形路径封闭器 - 跨元素Δ组装+动态几何参数 | `(fn?: PathsHook)` | `this` |
 | draw     | 输出阶段 - 图形渲染绘制器（2D Canvas / 3D WebGPU） | `(mode?: '2d' \| '3d')`，默认 `'2d'`；`'3d'` 时 WebGPU 不可用自动回退 | `Engine` |
@@ -402,8 +439,9 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
 <script setup>
   import { getCurrentInstance, onMounted, ref } from 'vue'
   const { proxy } = getCurrentInstance()
-  const { $K1TsukiyoX: Tsukiyo, $K1ShapesX: Shapes, $K1RgbaX: rgba, $K1PrimX: Prim } = proxy
+  const { $K1TsukiyoX: Tsukiyo, $K1ShapesX: Shapes, $K1RgbaX: rgba, $K1PrimX: Prim, $K1AxisX: Axis } = proxy
 
+  const pointRef = ref()
   const barRef = ref()
   const barGroupRef = ref()
   const lineRef = ref()
@@ -438,9 +476,9 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
     }
   }
 
-  // sineHook — 拦截 paths 组装，末点回绕首点形成封闭平滑曲线
+  // sinHook — 拦截 paths 组装，末点回绕首点形成封闭平滑曲线
   // 默认 pathsTask 对 Curve 末点设 Δ=0（开放折线），此处用模运算封闭
-  const sineHook = ($model, $rule, $ctx) => {
+  const sinHook = ($model, $rule, $ctx) => {
     const n = $model.count
     for (let i = 0; i < n; i++) {
       if ($model.type[i] !== Prim.Curve) continue
@@ -455,6 +493,19 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
   }
 
   onMounted(async () => {
+    // Point — 散点图（Axis.xy() 双数值连续轴 + circle 原语）
+    {
+      const canvas = document.createElement('canvas')
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+      pointRef.value.appendChild(canvas)
+      await new Tsukiyo(canvas)
+        .input([10, 80, 45, 120, 60])
+        .coord(Axis.xy())
+        .point((el, p, i) => Shapes.circle(10, colors[i % colors.length]))
+        .draw()
+    }
+
     // Bar — 基础柱状图
     {
       const canvas = document.createElement('canvas')
@@ -513,7 +564,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
         .input([10, 80, 45, 120, 60])
         .coord('Line')
         .point((el, p, i) => Shapes.curve(colors[0]))
-        .paths(sineHook)
+        .paths(sinHook)
         .draw()
     }
 
@@ -533,9 +584,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
         ])
         .scale({ dimX: 'name', dimY: ['val'] })
         .coord('polar')
-        .point((el, p, i) => {
-          return Shapes.arc(60, 0, Math.PI * 2, colors[i % colors.length])
-        })
+        .point((el, p, i) => Shapes.sector(60, colors[i % colors.length]))   // 扇段语法糖 — 角度按 value 比例分配
         .draw()
     }
 
@@ -589,9 +638,7 @@ Tsukiyo（月读）是极简 2D 可视化库，采用链式 API：`input → poi
         ])
         .scale({ dimX: 'name', dimY: ['val'] })
         .coord('polar')
-        .point((el, p, i) => {
-          return Shapes.arc(60, 0, Math.PI * 2, colors[i % colors.length])
-        })
+        .point((el, p, i) => Shapes.sector(60, colors[i % colors.length]))   // 扇段语法糖 — 角度按 value 比例分配
         .draw('3d')
     }
   })

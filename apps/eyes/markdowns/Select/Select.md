@@ -6,15 +6,15 @@
   filterable
   :options="options"
   :multiable="false"
-  :onFilter="(opt, sv) => opt.MSLabel.includes(sv)"
-  @select="(_msobj_) => { console.log(`select 组件回调输出 ${_msobj_}`) }"
+  :onFilter="(opts, sv) => opts.filter(opt => opt.MSLabel.includes(sv))"
+  @select="(_msobj) => { console.log(`select 组件回调输出 ${_msobj}`) }"
 />
 <m9-select
   filterable
   :options="options"
   :multiable="true"
-  :onFilter="(opt, sv) => opt.MSLabel.includes(sv)"
-  @select="(_msobj_) => { console.log(`select 组件回调输出 ${_msobj_}`) }"
+  :onFilter="(opts, sv) => opts.filter(opt => opt.MSLabel.includes(sv))"
+  @select="(_msobj) => { console.log(`select 组件回调输出 ${_msobj}`) }"
 />
 
 **代码**
@@ -25,15 +25,15 @@
     filterable
     :options="options"
     :multiable="false"
-    :onFilter="(opt, sv) => opt.MSLabel.includes(sv)"
-    @select="(_msobj_) => { console.log(`select 组件回调输出 ${_msobj_}`) }"
+    :onFilter="(opts, sv) => opts.filter(opt => opt.MSLabel.includes(sv))"
+    @select="(_msobj) => { console.log(`select 组件回调输出 ${_msobj}`) }"
   />
   <m9-select
     filterable
     :options="options"
     :multiable="true"
-    :onFilter="(opt, sv) => opt.MSLabel.includes(sv)"
-    @select="(_msobj_) => { console.log(`select 组件回调输出 ${_msobj_}`) }"
+    :onFilter="(opts, sv) => opts.filter(opt => opt.MSLabel.includes(sv))"
+    @select="(_msobj) => { console.log(`select 组件回调输出 ${_msobj}`) }"
   />
 </template>
 ```

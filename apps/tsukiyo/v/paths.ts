@@ -5,17 +5,19 @@
  * 三角扇约定（shape/coord/render/model 对齐）：x,y=V_d；w,h=V_{d+1} 偏移；aux0,aux1=圆心 C 偏移，
  * render 以 (x,y)/(x+w,y+h)/(x+aux0,y+aux1) 三点画三角形。常驻 task，tick 驱动（after coord）。
  */
-import type { CoordRule, CoordCtx } from '../yomi'
+import type { CoordCtx, ITsukiyoLocator } from '../yomi'
 import { Prim } from '../yomi'
 import type { TsuModel } from '../m/model'
 import { Hm_mapRange } from '../helper/maths'
 import { ARC_START_ANGLE, GEO_SLOTS_EACH_ELEM, TAU } from '../helper/const'
 
 // PathsHook — 自定义路径拦截器（`.paths(hook)` 注入，优先于内置）
-export type PathsHook = ($model: TsuModel, $rule: CoordRule, $ctx: CoordCtx) => void
+export type PathsHook = ($model: TsuModel, $rule: ITsukiyoLocator, $ctx: CoordCtx) => void
 
-// pathsTask — 只写目标几何（动画缩放归 render；guard 归 engine）
-export function pathsTask($model: TsuModel, $rule: CoordRule, $ctx: CoordCtx): void {
+// pathsTask — 只写目标几何（动画缩放归 render；guard 归 engine）；ctx 从 rule.ctx 取（单点生产）
+export function pathsTask($model: TsuModel, $rule: ITsukiyoLocator): void {
+  const $ctx = $rule.ctx
+  if (!$ctx) return
   const dimYCount = $model.dimYMap.size || 1
 
   // dimYCount>1 → dimX 变化即系列边界；=1 单线顺序连接
@@ -23,7 +25,7 @@ export function pathsTask($model: TsuModel, $rule: CoordRule, $ctx: CoordCtx): v
   const cx = $ctx.width / 2          // 圆心（三角扇第三顶点 C）
   const cy = $ctx.height / 2
 
-  let _polarAng = $ctx.init?.θ ?? ARC_START_ANGLE   // polar 累计角（默认 12 点钟）
+  let _polarAng = $rule.init?.θ ?? ARC_START_ANGLE   // polar 累计角（默认 12 点钟）
   let _seriesStart = 0               // 系列起始索引（闭合回绕）
 
   for (let _i = 0; _i < $model.count; _i++) {
@@ -48,15 +50,17 @@ export function pathsTask($model: TsuModel, $rule: CoordRule, $ctx: CoordCtx): v
       const normalized = Hm_mapRange(value, $ctx.valueMin, $ctx.valueMax, 0, $ctx.height)
       $model.h[_i] = Math.max(1, normalized)
       $model.markDirty(_i)
-    } else if (primType === Prim.Arc && $rule.rule === 'polar') {
-      // 扇形角度 = value/sum × TAU
-      const fraction = value / $ctx.valueSum
-      const startAng = _polarAng
-      _polarAng += fraction * TAU
+    } else if (primType === Prim.Arc) {
+      // 角度占位检测（NaN 哨兵 — point 阶段写入）→ 按 value 比例分配；显式角度保持不动
       const a = _i * GEO_SLOTS_EACH_ELEM
-      $model.aux[a + 1] = startAng
-      $model.aux[a + 2] = _polarAng
-      $model.markDirty(_i)
+      if (Number.isNaN($model.aux[a + 1])) {
+        const fraction = value / $ctx.valueSum
+        const startAng = _polarAng
+        _polarAng += fraction * TAU
+        $model.aux[a + 1] = startAng
+        $model.aux[a + 2] = _polarAng
+        $model.markDirty(_i)
+      }
     }
 
     // —— 跨元素路径组装 ——

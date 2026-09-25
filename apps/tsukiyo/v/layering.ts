@@ -5,7 +5,7 @@
  * ③ 合并脏区域 ④ 大名单（域内相交 ∧ 视线内，含联动非脏）⑤ anim 推进。
  * 派生注入：视口/locator/coordCtx 全 getter 回调（读取即最新）。
  */
-import type { Schedulable, CoordRule, CoordCtx, Bounds } from '../yomi'
+import type { Schedulable, ITsukiyoLocator, CoordCtx, Bounds } from '../yomi'
 import type { TsuModel } from '../m/model'
 import type { Grid } from '../middleware/spatial'
 import type { Dirty } from '../middleware/dirty'
@@ -14,17 +14,16 @@ import { radarRadius } from './coord'
 import { Hm_unionBounds } from '../helper/maths'
 import { Hcvs_retina } from '../helper/canvas'
 import {
-  ARC_START_ANGLE, DIRTY_PAD_RATIO, DIRTY_PAD_PX, GRID_STYLE,
+  ARC_START_ANGLE, AXIS_TICKS, DIRTY_PAD_RATIO, DIRTY_PAD_PX, GRID_STYLE,
   LABEL_AXIS_THRESHOLD, POLAR_GRID_RAYS, RADAR_GRID_LAYERS, RADAR_LABEL_OFFSET,
-  TAU, Y_AXIS_TICKS,
+  TAU,
 } from '../helper/const'
 
 /** 派生依赖 — getter 注入（读取即最新） */
 export interface LayeringDeps {
   viewWidth: () => number
   viewHeight: () => number
-  locator: () => CoordRule | null
-  coordCtx: () => CoordCtx | null
+  locator: () => ITsukiyoLocator | null
 }
 
 export class Layering implements Schedulable {
@@ -195,8 +194,8 @@ export class Layering implements Schedulable {
       }
     } else {
       // 笛卡尔（默认）
-      const dimXCount = this.model.dimXMap.size || 1
-      const colW = w / dimXCount
+      const locator = this.deps.locator()
+      const coordCtx = locator?.ctx ?? null
 
       // Y 轴竖线
       ctx.beginPath()
@@ -204,32 +203,48 @@ export class Layering implements Schedulable {
       ctx.lineTo(0, h)
       ctx.stroke()
 
-      // 竖线画列中心 + X 轴刻度
-      const dimXKeys = [...this.model.dimXMap.keys()]
-      for (let _i = 0; _i < dimXCount; _i++) {
-        const x = _i * colW + colW / 2
-        ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, h)
-        ctx.stroke()
-        if (dimXKeys[_i]) {
+      // X 轴竖线 — 轴域驱动：cat → 列中心 + 类别标签；num → 数值等分 + 数值标签
+      if (locator?.x.kind === 'num') {
+        const xMin = coordCtx?.xMin ?? 0
+        const xMax = coordCtx?.xMax ?? 100
+        for (let _i = 0; _i <= AXIS_TICKS; _i++) {
+          const x = (_i / AXIS_TICKS) * w
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, h)
+          ctx.stroke()
+          const tickVal = xMin + (_i / AXIS_TICKS) * (xMax - xMin)
           ctx.textAlign = 'center'
-          ctx.fillText(dimXKeys[_i], x, h - GRID_STYLE.xLabelOffsetY)
+          ctx.fillText(tickVal.toFixed(GRID_STYLE.yLabelDecimals), x, h - GRID_STYLE.xLabelOffsetY)
+        }
+      } else {
+        const dimXCount = this.model.dimXMap.size || 1
+        const colW = w / dimXCount
+        const dimXKeys = [...this.model.dimXMap.keys()]
+        for (let _i = 0; _i < dimXCount; _i++) {
+          const x = _i * colW + colW / 2
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, h)
+          ctx.stroke()
+          if (dimXKeys[_i]) {
+            ctx.textAlign = 'center'
+            ctx.fillText(dimXKeys[_i], x, h - GRID_STYLE.xLabelOffsetY)
+          }
         }
       }
 
       // 横线 + Y 轴刻度（coordCtx 本 tick 产出；null → 默认值域）
-      const coordCtx = this.deps.coordCtx()
       const vMin = coordCtx ? coordCtx.valueMin : 0
       const vMax = coordCtx ? coordCtx.valueMax : 100
 
-      for (let _i = 0; _i <= Y_AXIS_TICKS; _i++) {
-        const y = (_i / Y_AXIS_TICKS) * h
+      for (let _i = 0; _i <= AXIS_TICKS; _i++) {
+        const y = (_i / AXIS_TICKS) * h
         ctx.beginPath()
         ctx.moveTo(0, y)
         ctx.lineTo(w, y)
         ctx.stroke()
-        const tickVal = vMax - (_i / Y_AXIS_TICKS) * (vMax - vMin)
+        const tickVal = vMax - (_i / AXIS_TICKS) * (vMax - vMin)
         ctx.textAlign = 'left'
         ctx.fillText(tickVal.toFixed(GRID_STYLE.yLabelDecimals), GRID_STYLE.yLabelOffsetX, y + GRID_STYLE.yLabelOffsetY)
       }

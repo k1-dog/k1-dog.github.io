@@ -2,21 +2,23 @@
  * engine — 引擎：注册全部 task 到 Scheduler，装配数据流（纯调度装配层，零布局绘制逻辑）。
  * 数据流（dataDirty 单标志全链驱动）：input → scale(std) → point → coord → paths → layering+draw。
  * 投递语义：data()/resize() 只「暂存 + reset('input')」零 SoA 写入；下一 tick input 消费 pending
- * （std → loadElements 暂存 → locator 重解析 → dataDirty 置位），point→coord→paths→layering 同 tick
+ * （std → loadEls 暂存 → dataDirty 置位），point→coord→paths→layering 同 tick
  * 按 after 链串行完成（paths 单点清 dataDirty）→ SoA 永不出现「新值+旧形」跨 tick 混合态，
  * grid 重绘读到的 coordCtx 必为本轮最新。
- * ① input 消费 pending ② point 定型（SoA 唯一写入者）③ coord 只写 x/y 构建 CoordCtx
+ * coord 阶段单点生产：输入态 locator（仅挂 coordRule）在 ③ coord task 内解析 + 投影 + 挂 ctx，
+ * 解析前无消费者（paths/layering/draw 全部 after coord）。
+ * ① input 消费 pending ② point 定型（SoA 唯一写入者）③ coord 单点生产 locator（解析+投影）
  * ④ paths 写非位置几何（pathsHook 每帧，保守设计）⑤ interact 常驻（用上一帧 spatial 索引，一帧滞后设计）
  * ⑥ layering 常驻 ⑦ draw 常驻 flush。
  * pause(name)/resume(name) 幂等。
  */
-import type { DimConf, Renderer, Schedulable, CoordCtx, CoordRule, CoordMapper } from '../yomi'
+import type { DimConf, Renderer, Schedulable, CoordCtx, CoordRule, CoordMapper, ITsukiyoLocator } from '../yomi'
 
 import { TsuModel } from '../m/model'
 import { std } from '../m/std'
 import { pointTask, PointFn } from '../v/shape'
 
-import { coordTask, resolveCoordLocator } from '../v/coord'
+import { resolveCoordLocator } from '../v/coord'
 import { pathsTask } from '../v/paths'
 import type { PathsHook } from '../v/paths'
 import { Scheduler } from './scheduler'
@@ -35,15 +37,7 @@ export interface EngineOpts {
   camera: CoordMapper   // 与 renderer 工厂成对，Grid 聚合区消费
   pointFn: PointFn
   pathsHook?: PathsHook | null
-  coord: string | ((world: { width: number; height: number; dimYCount: number }) => CoordRule)
-}
-export interface EngineOpts {
-  canvas: HTMLCanvasElement
-  renderer: Renderer
-  camera: CoordMapper   // 与 renderer 工厂成对，Grid 聚合区消费
-  pointFn: PointFn
-  pathsHook?: PathsHook | null
-  coord: string | ((world: { width: number; height: number; dimYCount: number }) => CoordRule)
+  coord: CoordRule
 }
 
 /** 投递载荷 — 暂存，input 消费（单通道，最后投递胜出） */
@@ -62,10 +56,9 @@ export class Engine {
   private canvas: HTMLCanvasElement
   private pointFn: PointFn
   private pathsHook: PathsHook | null = null
-  private coordRule: string | ((world: any) => CoordRule)
 
-  private locator: CoordRule | null = null   // 解析后定位规则（单点持有，下游 getter 派生）
-  private coordCtx: CoordCtx | null = null
+  /** 坐标系定位器 — 唯一 coord 状态：输入态（仅 coordRule）→ coord task 解析 → 完整规则 + ctx */
+  private locator: ITsukiyoLocator | null = null
   private viewWidth = 0
   private viewHeight = 0
 
@@ -80,7 +73,7 @@ export class Engine {
     this.renderer = $opts.renderer
     this.pointFn = $opts.pointFn
     this.pathsHook = $opts.pathsHook ?? null
-    this.coordRule = $opts.coord
+    this.locator = { coordRule: $opts.coord } as ITsukiyoLocator   // 输入态 — coord task 解析
     this.spatial = new Grid(DEFAULT_CELL_SIZE, $opts.camera)
 
     // retina 初始化（CSS 尺寸供 coord）
@@ -98,7 +91,6 @@ export class Engine {
         viewWidth: () => this.viewWidth,
         viewHeight: () => this.viewHeight,
         locator: () => this.locator,
-        coordCtx: () => this.coordCtx,
       },
     )
     this.layering.initGrid()
@@ -107,7 +99,7 @@ export class Engine {
   }
 
   private registerTasks(): void {
-    // ① input — 消费 pending（std → loadElements 暂存 → locator 重解析 → 置位）
+    // ① input — 消费 pending（std → loadEls 暂存 → 置位）
     this.scheduler.add('input', () => {
       const p = this.pending
       if (p.raw === null && !p.resized) {
@@ -115,12 +107,9 @@ export class Engine {
         return
       }
 
-      // resize — 尺寸已同步更新（DOM 事实），此处只重解析 + 置位
+      // resize — 尺寸已同步更新（DOM 事实），此处只置位（coord task 用新尺寸重解析重投影）
       if (p.resized) {
         p.resized = false
-        this.locator = resolveCoordLocator(
-          this.coordRule, this.viewWidth, this.viewHeight, this.model.dimYMap.size || 1,
-        )
         this.model.dataDirty = true
         this.layering?.markGridDirty()
       }
@@ -129,14 +118,10 @@ export class Engine {
       if (p.raw !== null) {
         const elements = std(p.raw, p.dim ?? undefined)
         this.model.raw = p.raw
-        this.model.loadElements(elements)
+        this.model.loadEls(elements)
         p.raw = null
         p.dim = null
 
-        // locator 重解析（dimYCount 可能随新数据变化）
-        this.locator = resolveCoordLocator(
-          this.coordRule, this.viewWidth, this.viewHeight, this.model.dimYMap.size || 1,
-        )
         this.layering?.markGridDirty()
         this.model.dataDirty = true
       }
@@ -151,25 +136,26 @@ export class Engine {
       }
     }, { after: ['input'] })
 
-    // ③ coord — 定位（after point）— 只写 x/y，构建 CoordCtx
+    // ③ coord — 单点生产（after point）：解析规则 → 投影 → 挂 ctx（解析前无消费者）
     this.scheduler.add('coord', () => {
-      if (this.model.dataDirty && this.locator) {
-        this.coordCtx = coordTask(this.model, this.locator, this.viewWidth, this.viewHeight)
-      }
+      if (!this.model.dataDirty || !this.locator) return
+      this.locator = resolveCoordLocator(
+        this.locator.coordRule as CoordRule, this.model, this.viewWidth, this.viewHeight,
+      )
     }, { after: ['point'] })
 
-    // ④ paths — 封闭（after coord）— 接收 CoordCtx 写非位置几何（受 dataDirty 守卫）；
+    // ④ paths — 封闭（after coord）— 接收 locator.ctx 写非位置几何（受 dataDirty 守卫）；
     // pathsHook 每帧执行（用户边界，保守设计）；dataDirty 所有退出路径统一清除
     this.scheduler.add('paths', () => {
-      if (!this.locator || !this.coordCtx) {
+      if (!this.locator || !this.locator.ctx) {
         this.model.dataDirty = false   // 提前退出也清除，避免无限重算
         return
       }
       if (this.model.dataDirty) {
-        pathsTask(this.model, this.locator, this.coordCtx)
+        pathsTask(this.model, this.locator)
       }
       if (this.pathsHook) {
-        this.pathsHook(this.model, this.locator, this.coordCtx)
+        this.pathsHook(this.model, this.locator, this.locator.ctx)
       }
       this.model.dataDirty = false
     }, { after: ['coord'] })

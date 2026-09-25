@@ -26,8 +26,9 @@
     "lib": ["esnext", "dom"]
   },
   "include": [
-    "apps/components", "apps/styles", "apps/utils", "apps/tsukiyo", "apps/eslint",
-    "./miku-types/**/*.d.ts"
+    "apps/components", "apps/styles", "apps/eyes", "apps/utils", "apps/tsukiyo", "apps/eslint",
+    "./miku-types/**/*.d.ts",
+    "vitepress/client"
   ],
   "exclude": ["node_modules"]
 }

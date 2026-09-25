@@ -159,7 +159,12 @@ $miku-blue-0: #0091FF;
 body {
   color: m9Themed('m9-element-fontClr');
 }
-[class="dark"]:root {
+// Use the class-inclusion selector so the dark theme still applies when
+// VitePress (or any other logic) keeps extra classes on <html>, e.g.
+// `class="dark vp-sidebar-collapsed"`. The previous `[class="dark"]`
+// exact-match selector dropped the dark variables the moment another
+// class was added to the root element.
+:root.dark {
   body {
     background-color: #1b1b1f;
   }

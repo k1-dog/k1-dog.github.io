@@ -92,11 +92,17 @@ $miku-file-preCls: '#{$m9-preCls}-file';
       }
       .file-name {
         @include m9-text-overflow();
-        float: left;
+        max-width: 200px;
+      }
+      .file-size {
+        font-style: italic;
+        font-size: 0.8em;
+        font-weight: lighter;
       }
       .file-percentage {
         float: left;
-        font-weight: 700;
+        font-weight: bold;
+        font-style: italic;
       }
       .file-status {
         float: left;

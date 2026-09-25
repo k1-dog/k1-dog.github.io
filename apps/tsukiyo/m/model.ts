@@ -174,7 +174,7 @@ export class TsuModel {
   }
 
   /** 暂存标准化元素（SoA 写入权唯一归 pointTask，此处零 SoA 写入）；维度映射自 std 产出派生（零外部 dim 传参） */
-  loadElements($elements: Element[]) {
+  loadEls($elements: Element[]) {
     this.elements = $elements
 
     // 维度映射 — 自描述取值：e.dimX 是字段名，维度值在 e[e.dimX]（基元快路径→行号；melt→字段值）

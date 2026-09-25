@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import MTransition from '../Transtions'
-import { PropType, defineComponent } from 'vue'
+import { PropType, defineComponent, reactive } from 'vue'
 
 const MRipple = MTransition.MRipple
 
@@ -8,25 +8,25 @@ export interface ButtonHandleClick {
   <E3, R>(e?: E3, ...restArgs: R[]): any
 }
 
-export type btnTypes = 'main' | 'pure' | 'danger' | 'mirai' | 'k1'
-export type sizeTypes = 'small' | 'medium' | 'large'
-export type shapeTypes = 'circle' | 'square'
+export type TMBtnTypes = 'main' | 'pure' | 'danger' | 'mirai' | 'k1'
+export type TMBtnSize = 'small' | 'medium' | 'large'
+export type TMBtnShape = 'circle' | 'square'
 
-export interface ButtonProps {
+export interface IMButtonProps {
   /**
    * @param {string | undefined} type <按钮类型>
    */
-  type?: btnTypes
+  type?: TMBtnTypes
 
   /**
    * @param {string | undefined} shape <按钮形状>
    */
-  shape?: shapeTypes
+  shape?: TMBtnShape
 
   /**
    * @param {string | undefined} size <按钮大小>
    */
-  size?: sizeTypes
+  size?: TMBtnSize
 
   /**
    * @param {string | undefined} disabled <禁用标志>
@@ -46,38 +46,44 @@ export interface ButtonProps {
   [k: string]: any
 }
 
+export interface IMButtonState {
+  loading: IMButtonProps['loading']
+}
+
 export default defineComponent({
   name: "M9Button",
+  // Declare 'click' as a component custom event so @click does not fall
+  // through to the root element (ripple wrapper span) native click handler.
+  emits: ['click'],
   props: {
     type: {
-      type: String as PropType<ButtonProps['type']>,
+      type: String as PropType<IMButtonProps['type']>,
       default: 'main'
     },
     shape: {
-      type: String as PropType<ButtonProps['shape']>,
+      type: String as PropType<IMButtonProps['shape']>,
       default: 'square'
     },
     size: {
-      type: String as PropType<ButtonProps['size']>,
+      type: String as PropType<IMButtonProps['size']>,
       default: 'medium'
     },
     disabled: {
-      type: Boolean as PropType<ButtonProps['disabled']>,
+      type: Boolean as PropType<IMButtonProps['disabled']>,
       default: false
     },
     loading: {
-      type: Boolean as PropType<ButtonProps['loading']>,
+      type: Boolean as PropType<IMButtonProps['loading']>,
       default: false
     }
   },
-  setup (props, ctx) {
+  setup(props, ctx) {
+    const state: IMButtonState = reactive({ loading: false })
     const buttonEle: HTMLButtonElement | null = null
     const onHandleClick: Function = ($e: PointerEvent) => {
-      // 不加这行阻止冒泡的话, 这个按钮点击事件会连续触发两次
-      // 奇怪的是 并不是这里的点击事件触发两次, 而是外部监听这个点击事件的回调事件会连续两次执行, 搞不懂
-      $e && $e.stopPropagation()
-
-      // console.log('🚀 ~ Button::setup ~ e:', e)
+      // With `emits: ['click']` declared, emit('click') is the only trigger
+      // path for the user's @click listener, so the native event can bubble
+      // freely (no stopPropagation needed) without causing double fire.
       ctx.emit('click', $e)
     }
     return {

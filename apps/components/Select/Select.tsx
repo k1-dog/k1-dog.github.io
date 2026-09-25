@@ -34,7 +34,7 @@ export interface MSelectProps {
 
   optionSlot: Slot
 
-  valueInputSlot: (params: {curInputVal: MS_OPT; curInputIndex: number; inputVals: MS_OPTS }) => VNode[]
+  valueInputSlot: (params: { curInputVal: MS_OPT; curInputIndex: number; inputVals: MS_OPTS }) => VNode[]
 
   /**
    * @description 开启多选标记
@@ -58,17 +58,17 @@ interface MSelectState {
   /**
    * @description 下拉框显示标记
    */
-  selectPanelVisible : boolean;
+  selectPanelVisible: boolean;
 
   /**
    * @description 下拉框组件中 内部输入框[单选选中后]的值
    */
-  innerVal ?: MS_OPT;
+  innerVal?: MS_OPT;
 
   /**
    * @description 多选状态时的值组
    */
-  valGroup ?: MS_OPTS;
+  valGroup?: MS_OPTS;
 
   /**
    * @see 下拉选择框__STAT__位置、宽度元素信息
@@ -102,10 +102,11 @@ export default defineComponent({
     onFilter: { type: Function as PropType<MSelectProps['onFilter']>, default: () => void 0 }
   },
   emits: ['select', 'filter', 'update:modelValue'],
-  setup (props, ctx) {
+  setup(props, ctx) {
     const selectRef: Ref<HTMLElement | null> = ref(null)
-    const optionsPanelRef : Ref<HTMLElement | null> = ref(null)
-    const optionsPanelViewportRef : Ref<HTMLElement | null> = ref(null)
+    const optionsPanelRef: Ref<HTMLElement | null> = ref(null)
+    const optionsPanelViewportRef: Ref<HTMLElement | null> = ref(null)
+    const vsScrollerRef: Ref<any> = ref(null)
     /**
      * @private 内部临时下拉数据源副本隔离, 用以展示多种形式叠加后的最新视图, 防止源options1被污染
      */
@@ -145,7 +146,7 @@ export default defineComponent({
       return _isNotInArea
     }
 
-    function onOpenSelectPanel (
+    function onOpenSelectPanel(
       $cur_visible: boolean,
       // ext_setting_state?: Pick<MSelectState, Exclude<keyof MSelectState, 'selectPanelVisible'>>
     ) {
@@ -154,13 +155,20 @@ export default defineComponent({
       state.selectPanelVisible = visible_
 
       state.select$stat = calcSelectPanelDomStat()
+
+      // Virtual scroll container is hidden by Expand (display:none) until the panel opens, remeasure after expand
+      if (visible_) {
+        nextTick(() => {
+          vsScrollerRef.value?.notifyObserveVS()
+        })
+      }
     };
 
     // * 根据传入的初始选项数据源, 重铸成 M9Select 所需的选项数据源 options0 (这个是持久化不变的那个整合选项源)
-    function rebuild_the_options0 (
+    function rebuild_the_options0(
       $initialOptions: MSelectProps['options'],
       $replaceFields: MSelectProps['replaceFields']
-    ) : MS_OPTS {
+    ): MS_OPTS {
       const { optionSlot } = props
       const m9Select_options = $initialOptions.map(($_option, $_i) => {
         return {
@@ -173,7 +181,7 @@ export default defineComponent({
       return m9Select_options
     };
     // * 将当前 被选中的数据提取出来 - 与 - 剩余的未被选中的数据 重新合并成
-    function Merge_S0_S1_IntoOptions0 ($the_s1_item: MS_OPT | MS_OPTS): MS_OPTS {
+    function Merge_S0_S1_IntoOptions0($the_s1_item: MS_OPT | MS_OPTS): MS_OPTS {
       // ? $0-1::当前_可视选项_的内部维护表_01
       const SeenOptions1 = [...state.options_1]
       // ! 优化一下 - 用 Map结构 空间换时间
@@ -189,8 +197,8 @@ export default defineComponent({
 
       // ? 选择器组件内部_全表选项副本_00
       const NotSeenOptions0 = _options_0
-      // ? 筛选出__非可视区__的|>选项维护表<|
-      .filter($opt0 => !_options1Map.has($opt0.MSVal))
+        // ? 筛选出__非可视区__的|>选项维护表<|
+        .filter($opt0 => !_options1Map.has($opt0.MSVal))
 
       // ! 用提取出的 本轮没参与选择逻辑的 options0- 合并 -当前最新的options1 生成全新的 options0整表选项, 覆盖老的options0 保持副本同步
       let _merge_s0_s1_list = [...NotSeenOptions0, ...SeenOptions1]
@@ -218,23 +226,25 @@ export default defineComponent({
       return reSortMergeOptions0
     };
 
-    function onHandleSelect ($e : Event) {
+    function onHandleSelect($e: Event) {
       $e.preventDefault()
       // 点击判断 是否为委托者本身 是则跳过处理步骤
-      if ($e.target === $e.currentTarget) return ;
+      if ($e.target === $e.currentTarget) return;
+      // Event delegation: walk up from the clicked node so custom optionSlot
+      // markup (img/span/div) without data-msk still resolves to the row.
+      const $target = ($e.target as HTMLElement)?.closest?.('[data-msk]') as HTMLElement | null
+      if (!$target) return
       // 事件委托 选择选中内容
       const { options_1: cloneOptions1 } = state
 
-      const s1_obj = cloneOptions1.find($opt$1 => $opt$1.MSVal == ($e.target as any).dataset.msk)
+      const s1_obj = cloneOptions1.find($opt$1 => $opt$1.MSVal == $target.dataset.msk)
 
-      if (!s1_obj) return ; // ? 可能没找到--目标选项~~直接终止处理流程
+      if (!s1_obj) return; // ? 可能没找到--目标选项~~直接终止处理流程
       s1_obj.selected = true
 
       cloneOptions1
         .filter($everyOption => $everyOption.MSVal !== s1_obj.MSVal)
         .forEach($everyOption => $everyOption.selected = false)
-
-      console.log('state.innerVal = v333 >>', s1_obj);
 
       state.innerVal = s1_obj
       state.options_1 = cloneOptions1
@@ -246,12 +256,16 @@ export default defineComponent({
       })
     }
 
-    function onMultiSelect ($e: Event) {
+    function onMultiSelect($e: Event) {
       $e.preventDefault()
-      if ($e.target === $e.currentTarget) return ;
+      if ($e.target === $e.currentTarget) return;
+      // Event delegation: walk up from the clicked node so custom optionSlot
+      // markup (img/span/div) without data-msk still resolves to the row.
+      const $target = ($e.target as HTMLElement)?.closest?.('[data-msk]') as HTMLElement | null
+      if (!$target) return
       state.valGroup = (() => {
         const { valGroup: oldValGroup, options_1 } = state
-        const curMSK = ($e.target as any).dataset.msk
+        const curMSK = $target.dataset.msk
         const curMSV = options_1.find($opt$1 => $opt$1.MSVal == curMSK)
         if (!curMSV) return oldValGroup; // ? @see 可能没找到--目标选项~~直接终止处理流程
         if (oldValGroup) {
@@ -274,19 +288,15 @@ export default defineComponent({
     }
 
     // * 目前这个-<_删除选项_>-的方法__暂只支持--多选模式--的选项删除?
-    function onDeleteSelect ($delettingEl: Event) {
-      // ? 获取__事件触发的|>起源元素
-      const clickingEle: any = $delettingEl.target
-      // ? 获取__事件触发的|>最终捕获元素
-      const checkingEle = $delettingEl.currentTarget
-
-      if (clickingEle === checkingEle) return;
-
-      if (!('closev' in clickingEle.dataset) || !clickingEle.classList.contains('ms-closing')) { return; }
+    function onDeleteSelect($delettingEl: Event) {
+      // Event delegation: walk up to the close span that carries data-closev,
+      // so clicks on the inner SVG icon still resolve to the remove target.
+      const clickingEle = ($delettingEl.target as HTMLElement)?.closest?.('[data-closev]') as HTMLElement | null
+      if (!clickingEle) return
 
       const delettingMSK = clickingEle.dataset.closev
 
-      state.valGroup = (()=> {
+      state.valGroup = (() => {
         const { valGroup: oldValGroup } = state
         if (!!oldValGroup) {
           const itemIndex = oldValGroup.findIndex($curVal => $curVal.MSVal == delettingMSK)
@@ -309,13 +319,11 @@ export default defineComponent({
       if (props.multiable) {
         state.valGroup = $newSelectedItems
       } else {
-        console.log('state.innerVal = v111 >>', $newSelectedItems);
-
         state.innerVal = $newSelectedItems
       }
     })
 
-    function onChangeFilteringV ($filteringVal?: string) {
+    function onChangeFilteringV($filteringVal?: string) {
       state.filteringV = $filteringVal
     }
 
@@ -335,23 +343,23 @@ export default defineComponent({
       state.options_1 = filteredOptions
     }
 
-    function renderMultiSelectX ($playValueGroup: MSelectState['valGroup']): Element {
+    function renderMultiSelectX($playValueGroup: MSelectState['valGroup']): Element {
       const { valueInputSlot } = props
       const ms_multi_X = <div className={mselect_multi_wrapper} onClick={onDeleteSelect}>
         {
-          $playValueGroup?.map(($val, $inputVI )=> (
-          <div className={mselect_multi_wrapper_item} key={`MSelect-MMVal-${$val.MSVal}`}>
-            <span className={mselect_multi_wrapper_item_ctt}>
-              {
-                valueInputSlot
-                ? valueInputSlot({ curInputVal: $val, curInputIndex: $inputVI, inputVals: state.valGroup })
-                : $val?.MSLabel
-              }
-            </span>
-            <span className={mselect_multi_wrapper_item_close}>
-              <M9Icon icon="close" style={{ width: '1.2rem', height: '1.2rem', color: 'var(--element-active-borderClr)' }} data-closev={$val.MSVal} />
-            </span>
-          </div>
+          $playValueGroup?.map(($val, $inputVI) => (
+            <div className={mselect_multi_wrapper_item} key={`MSelect-MMVal-${$val.MSVal}`}>
+              <span className={mselect_multi_wrapper_item_ctt}>
+                {
+                  valueInputSlot
+                    ? valueInputSlot({ curInputVal: $val, curInputIndex: $inputVI, inputVals: state.valGroup })
+                    : $val?.MSLabel
+                }
+              </span>
+              <span className={`${mselect_multi_wrapper_item_close} ms-closing`} data-closev={$val.MSVal}>
+                <M9Icon icon="close" style={{ width: '1.2rem', height: '1.2rem', color: 'var(--element-active-borderClr)' }} />
+              </span>
+            </div>
           ))
         }
         <p>...... 总共 <span style="color: red; font-size: 1rem;">{state.valGroup.length}</span> 条项目</p>
@@ -413,7 +421,7 @@ export default defineComponent({
       return isSelectAll
     })
 
-    function onSelectAll () {
+    function onSelectAll() {
       const value = Boolean(isSelectAll.value !== 1 ? 1 : 0)
       state.options_1.forEach($everyOption => {
         $everyOption.selected = value
@@ -442,6 +450,7 @@ export default defineComponent({
       selectRef,
       optionsPanelRef,
       optionsPanelViewportRef,
+      vsScrollerRef,
       isSelectAll,
       onSelectAll,
       onMultiSelect,
@@ -458,21 +467,21 @@ export default defineComponent({
     const { multiable, onFilter } = this.$props
     const { options_1, innerVal = {}, selectPanelVisible, filteringV } = this.state
     const { playValueGroup, isSelectAll, onSelectAll, renderMultiSelectX, onFilterOptions, onChangeFilteringV, onOpenSelectPanel, onMultiSelect, onHandleSelect } = this
-    // console.log('final-use for state.innerVal >>', innerVal);
+
     return (
       <>
-        <div className={preCls} ref={($_sr_) => this.selectRef = $_sr_ }>
-        <div className={mselect_inner_preCls(this.$props)}>
-          {
-            multiable ? renderMultiSelectX(playValueGroup) : <span key={innerVal?.MSVal}>{innerVal?.MSLabel}</span>
-          }
-          <div>
-            <span
-              className={mselect_inner_arrowCls}
-              onClick={$e => onOpenSelectPanel(!selectPanelVisible)}
-            ><k1-pumpkin lighting={selectPanelVisible}></k1-pumpkin></span>
+        <div className={preCls} ref={($_sr_) => this.selectRef = $_sr_}>
+          <div className={mselect_inner_preCls(this.$props)}>
+            {
+              multiable ? renderMultiSelectX(playValueGroup) : <span key={innerVal?.MSVal}>{innerVal?.MSLabel}</span>
+            }
+            <div>
+              <span
+                className={mselect_inner_arrowCls}
+                onClick={$e => onOpenSelectPanel(!selectPanelVisible)}
+              ><k1-pumpkin lighting={selectPanelVisible}></k1-pumpkin></span>
+            </div>
           </div>
-        </div>
         </div>
         <HangRoot>
           <Expand
@@ -481,9 +490,9 @@ export default defineComponent({
             style={{ ...this.state.select$stat, position: 'relative' }}
           >
             <div className={mselect_options_preCls} ref={($optionsPanelR) => this.optionsPanelRef = $optionsPanelR}>
-              {onFilter && <FilterOptsInput filteringV={filteringV} onRunFilter={onFilterOptions} onChangeFilteringV={onChangeFilteringV}/>}
+              {onFilter && <FilterOptsInput filteringV={filteringV} onRunFilter={onFilterOptions} onChangeFilteringV={onChangeFilteringV} />}
               <div ref={($optionsPanelViewportR) => this.optionsPanelViewportRef = $optionsPanelViewportR} className={`${mselect_options_preCls}--viewport`} onClick={multiable ? onMultiSelect : onHandleSelect}>
-                <VScroller vsElement={() => this.optionsPanelViewportRef} vsUnitHeight={this.rowHeight} data={options_1}>
+                <VScroller ref={($vsR: any) => this.vsScrollerRef = $vsR} vsUnitHeight={this.rowHeight} data={options_1}>
                   {
                     {
                       default: ($vsData: MSelectState['options_1']) => {
@@ -492,9 +501,9 @@ export default defineComponent({
                             {
                               $vsData.map($opt => (
                                 <div style={{ height: `${this.rowHeight}px` }} className={is_opt_mselected_cls($opt)} key={`select-opt-${$opt.MSVal}`}>
-                                  {multiable && <CheckboxItem mKey={$opt.MSVal} checked={Number($opt.selected)}></CheckboxItem>}
+                                  {multiable && <CheckboxItem mKey={$opt.MSVal} checked={Number($opt.selected)} />}
                                   <p className={mselect_options_row_ctt} data-msk={$opt.MSVal}>
-                                    { $opt?.MSLabel }
+                                    {$opt?.MSLabel}
                                   </p>
                                   <span className={mselect_options_row_yes} data-msk={$opt.MSVal}>
                                     <M9Icon icon="checked" style={{ width: '1.5rem', height: '1.5rem', color: $opt.selected ? '#3eeb5b' : '#768178', display: 'flex' }} />
@@ -564,7 +573,7 @@ const FilterOptsInput = ($props: TMMFilterOptions) => {
       <input
         value={filteringV}
         onChange={($e) => { onFiltering($e.target.value) }}
-        // onBlur={onBlurHandle}
+      // onBlur={onBlurHandle}
       />
       <M9Icon onClick={() => { onRunFilter(filteringV) }} icon="search" style={{ width: '1.5rem', height: '1.5rem' }} />
     </div>

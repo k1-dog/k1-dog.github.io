@@ -3,8 +3,8 @@ import zhezhiImg from '@k1/styles/assets/image/zhezhi_02.webp'
 import qinliImg from '@k1/styles/assets/image/kotori_01.webp'
 import sansanImg from '@k1/styles/assets/image/kurumi_01.webp'
 import meijiuImg from '@k1/styles/assets/image/miku.webp'
-import { M9ZzFieldT } from '@k1/ui-lib/Form/Type'
-import { FT } from '@k1/ui-lib/File/Type'
+import { M9ZzFieldT } from '@k1/ui-lib/Form/Type.js'
+import { FT } from '@k1/ui-lib/File/Type.js'
 
 const zzFields = [
   'honor', 'overlord', 'like', 'jointime', 'score', 'face', '___1', 'kurumi', 'yoshino', '___2', 'kotori'
@@ -35,10 +35,10 @@ export function mockFormModel($formFieldNames = zzFields) {
             Number(OPTION.value) === 1
               ? zhezhiImg
               : Number(OPTION.value) === 3
-              ? sansanImg
-              : Number(OPTION.value) === 5
-              ? qinliImg
-              : meijiuImg
+                ? sansanImg
+                : Number(OPTION.value) === 5
+                  ? qinliImg
+                  : meijiuImg
 
           return [
             <div className="flex align-items-center">

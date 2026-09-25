@@ -4,7 +4,7 @@
  * .eg new Tsukiyo(canvas).input([10,20,100]).coord('Bar')
  *        .point((el,p,i) => Shapes.rect(30, el.value)).draw()  // 更新：chart.data([50,60,70])
  */
-import type { DimConf, Element, Plugins, RenderMode } from '../yomi'
+import type { DimConf, Element, Plugins, RenderMode, CoordRule } from '../yomi'
 import { Engine } from './engine'
 import { createRenderer } from '../v/render'
 import type { PointFn } from '../v/shape'
@@ -25,7 +25,7 @@ export class Tsukiyo {
   private dim: DimConf | undefined
   private pointFn: PointFn = defaultPointFn
   private pathsHook: PathsHook | null = null
-  private coordRule: string | ((world: { width: number; height: number; dimYCount: number }) => any) = 'Bar'
+  private coordRule: CoordRule = 'Bar'
 
 
   constructor($canvas: HTMLCanvasElement) {
@@ -48,7 +48,7 @@ export class Tsukiyo {
     return this
   }
 
-  coord($rule: string | ((world: { width: number; height: number; dimYCount: number }) => any)): this {
+  coord($rule: CoordRule): this {
     this.coordRule = $rule
     return this
   }
@@ -97,6 +97,9 @@ export class Tsukiyo {
   }
 
   destroy(): void {
+    // 释放完全 — 解绑 DOM 事件（interact）+ 停网格（layering）+ 停调度器
+    this.engine?.pause('interact')
+    this.engine?.pause('layering')
     this.engine?.stop()
   }
 }

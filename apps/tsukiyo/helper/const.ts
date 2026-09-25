@@ -50,7 +50,7 @@ const GRID_STYLE = {
 } as const
 const RADAR_GRID_LAYERS = 4      // 雷达同心层数
 const POLAR_GRID_RAYS = 8        // 极坐标辐射线数
-const Y_AXIS_TICKS = 5           // Y 轴刻度数
+const AXIS_TICKS = 5             // 轴刻度数（Y 数值 / X 数值共用）
 const LABEL_AXIS_THRESHOLD = 0.5 // |cos|/|sin| 超过即视为轴向
 
 // —— tooltip ——
@@ -164,7 +164,7 @@ export {
   GRID_STYLE,
   RADAR_GRID_LAYERS,
   POLAR_GRID_RAYS,
-  Y_AXIS_TICKS,
+  AXIS_TICKS,
   LABEL_AXIS_THRESHOLD,
   TOOLTIP,
   DEFAULT_CAP,

@@ -119,13 +119,15 @@ class Canvas2D implements Renderer {
           break
         }
         case P.Circle: {
-          let _r = w / 2
+          // aux[0] = r（Shapes.circle 写入）；anim 半径生长 + hover 缩放
+          let _r = $model.aux[i * GEO_SLOTS_EACH_ELEM] * t
+          if (_r <= 0) continue   // 未定型跳过本元素（continue 不跳出分桶）
           if (isHover) _r *= HOVER_SCALE
           $ctx.beginPath()
           $ctx.arc(x, y, _r, 0, TAU)
-          $ctx.fillStyle = fillStr(Hm_alphaFill(fill))
-          $ctx.fill()
+          // 原色直绘 — 实心圆语义（与 Line/Curve 描边原语一致，消 radar α=40 默认降透明）
           $ctx.fillStyle = fillStr(fill)
+          $ctx.fill()
           if (isLocked) {
             $ctx.lineWidth = STROKE_LOCKED
             $ctx.strokeStyle = strokeStr

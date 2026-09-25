@@ -25,7 +25,7 @@ apps/tsukiyo/
 │   └── std.ts        # std() 数据标准化/初始化（宽表 melt → 长表 / 基元快路径）
 ├── v/                # ③ View 视图层 — 图形绘制与交互联动
 │   ├── shape.ts      # Shapes 原语工厂 + pointTask（SoA 图形槽唯一写入者）
-│   ├── coord.ts      # coordTask 定位 + resolveCoordLocator 规则解析
+│   ├── coord.ts      # coordTask 定位 + resolveCoordLocator 规则解析（含投影挂 ctx）
 │   ├── paths.ts      # pathsTask 非位置几何 + PathsHook
 │   ├── layering.ts   # 高级视觉布局 — 视觉基准/脏区收集/剔除/anim 推进委托
 │   ├── camera3.ts    # 取景相机 — CoordMapper 双实现 + 3D 相机数学
@@ -133,11 +133,18 @@ apps/tsukiyo/
 `Shapes.rect(w, h, rgba)` / `Shapes.line(rgba)` / `Shapes.arc(r, start, end, rgba)` / `Shapes.triangle(dx1, dy1, dx2, dy2, rgba)` / `Shapes.text(str, size)` / `Shapes.curve(...)`。
 pointTask 遍历元素调 pointFn 得 ShapeDesc，连续写入 SoA（fill 打包 uint32）。
 
-### 3.2 coord.ts — 定位
+### 3.2 coord.ts — 定位（轴原语组合）
 
-- `resolveCoordLocator(rule, w, h, dimYCount)` — 字符串/函数规则 → CoordRule（含 grid meta: 'cartesian'|'polar'|'radar'）
-- `coordTask(model, locator, w, h)` — 写 x/y + 返回 CoordCtx（valueMin/valueMax/ruler）
+- `Axis` — 轴原语组合子：坐标系 = 两根轴（域 kind + 投影 at）组装，非独立类
+  - 切片：`catX`（分类列中心）/ `baseY`（基线）/ `polarX/polarY`（画布中心）/ `radarX/radarY`（角度+半径）
+  - 数值轴：`x(fX?)` / `y(fY?)`（字段连续线性映射；缺省取 `el[el.dimX]` / `el.value`）
+  - 组合子：`xy(fX?, fY?)`（散点 = 双数值连续轴，`init:{y0:false}` 真实值域）
+- `resolveCoordLocator(rule, model, w, h)` — name/locator/fn → `ITsukiyoLocator`（解析 + 投影 + 挂 ctx 单点完成）；
+  string 分支浅拷贝防多 Engine 共享污染；未知名称 warn + 回退 Bar
+- `coordTask(model, locator, w, h)` — 写 x/y + 返回 CoordCtx（valueMin/valueMax + xMin/xMax 数值轴域）；
+  `locator.init?.y0 !== false` 时 Y 域 0 基线 + 1.2 上扩（柱/线/雷达），`false` 用真实 min/max（散点）
 - `radarRadius(w, h)` — 雷达半径（含标签位），grid 与 coord 同源
+- 内置 preset：`Bar`/`Line`/`polar`/`radar` — 仅预制组合语法糖（builtin 查表），任意新图表 = 轴的自由组合
 
 ### 3.3 render.ts / render-3d.ts — 绘制+清理
 
@@ -195,7 +202,7 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 | DIRTY_PAD_RATIO / DIRTY_PAD_PX | 脏区扩张（比例+像素） |
 | TEXT_DEFAULT_SIZE | 14（text 默认字号） |
 | GRID_STYLE | 网格样式（stroke/lineWidth/labelFont/offsets） |
-| Y_AXIS_TICKS / RADAR_GRID_LAYERS / POLAR_GRID_RAYS | 刻度数/雷达层数/极坐标辐射线 |
+| AXIS_TICKS / RADAR_GRID_LAYERS / POLAR_GRID_RAYS | 轴刻度数/雷达层数/极坐标辐射线 |
 | ARC_START_ANGLE | -π/2（雷达顶部起点） |
 | DEFAULT_CELL_SIZE | spatial 哈希格子 |
 | TOOLTIP | tooltip DOM 配置 |
@@ -254,7 +261,7 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 
 | 想改什么 | 去哪 |
 |---|---|
-| 图表类型/坐标规则 | v/coord.ts resolveCoordLocator |
+| 图表类型/坐标规则 | v/coord.ts Axis 组合子 + resolveCoordLocator |
 | 元素→图形映射 | v/shape.ts Shapes + 用户 pointFn |
 | 颜色 | helper/maths.ts Hm_palette |
 | hover 高亮样式 | v/render.ts drawBatch（STROKE_LOCKED）+ render-3d.ts（hover 派生） |

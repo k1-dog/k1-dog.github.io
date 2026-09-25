@@ -18,7 +18,7 @@ export const enum Prim {
   Rect, Arc, Line, Curve, Circle, Text, Triangle,
 }
 
-// 占位符 — 继承坐标系计算值
+// 占位符 — 继承坐标系计算值（Arc 角度占位 = 按 value 比例分配）
 export const _ = '_' as const
 export type Placeholder = typeof _
 export type CoordVal = number | Placeholder | string
@@ -43,16 +43,37 @@ export interface ShapeDesc {
   fill?: number
 }
 
-// —— 坐标系规则 ——
-// rule: 投影数学族（coord/paths 消费）；grid: 网格样式族（layering 静态层消费，单源判定）
-export interface CoordRule {
-  rule: 'cartesian' | 'polar'
-  grid?: 'cartesian' | 'polar' | 'radar'
-  init?: { θ?: number }
-  x: (value: number, dimX: number, dimY: number, ctx: CoordCtx) => number
-  y: (value: number, dimX: number, dimY: number, ctx: CoordCtx) => number
+// —— 单轴定位规则 ——
+// 一根轴 = 域（kind，grid 消费）+ 投影（at，coord 消费），内聚单对象
+export interface AxisRule {
+  kind: 'cat' | 'num'
+  field?: string          // 数值轴读取字段（缺省 el[el.dimX]；x 值域扫描同源）
+  at: (el: Element, dimX: number, dimY: number, ctx: CoordCtx) => number
 }
 
+// —— 坐标系参数包 ——
+// 坐标系初始参数：θ=polar 起始角（paths 消费）；y0=Y 轴是否 0 基线 + 1.2 上扩（缺省 true；连续值域显式 false）
+export interface TsukiyoInit {
+  θ?: number
+  y0?: boolean
+}
+
+// —— 坐标系定位器（resolveCoordLocator 返回值）——
+// 投影定位到坐标系具体位置的机器：两根轴 + 网格族标记 + 参数包 + 摄入输入 + 投影产物
+export interface ITsukiyoLocator {
+  x: AxisRule
+  y: AxisRule
+  grid: 'cartesian' | 'polar' | 'radar'   // 网格族（layering 单源判定）
+  init?: TsukiyoInit                      // 参数包（θ/y0）
+  coordRule?: CoordRule                   // 解析输入 — engine 构造挂载，coord task 解析后覆盖
+  ctx?: CoordCtx | null                   // 最近一次投影产物 — coordTask 单点写
+}
+
+// —— 坐标规则来源 — resolveCoordLocator 入参：内置名 / 定位器对象 / 工厂函数 ——
+export type CoordRule =
+  | string
+  | ITsukiyoLocator
+  | ((world: { width: number; height: number; dimYCount: number }) => ITsukiyoLocator)
 
 // 坐标上下文 — 统一 CSS 坐标系（retina setTransform 已处理 DPR）
 export interface CoordCtx {
@@ -61,11 +82,11 @@ export interface CoordCtx {
   count: number
   dimXCount: number
   dimYCount: number
-  index: number
   valueMin: number   // 数据域下界（归一化，替代独立 Scale 模块）
   valueMax: number   // 上界
   valueSum: number   // 总和（Arc 角度分配）
-  init?: { θ?: number }  // 初始参数（如 polar 起始角，paths 消费）
+  xMin?: number      // X 数值域下界（x.kind='num' 时扫描，grid 刻度消费）
+  xMax?: number      // X 数值域上界
 }
 
 export interface Task {
