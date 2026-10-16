@@ -3,11 +3,25 @@
   z-index: 10;
   background-color: transparent;
   border-radius: 4px;
+  
+  &::after {
+    content: '';
+    position: absolute;          /* 50% refers to the handle bar itself */
+    width: 3px;
+    height: 10px;
+    border: 2px solid #ffdfa4;
+    background-color: #ffad20;
+    border-radius: 2px;
+  }
+  /* the bar runs ALONG its edge — same pill, pure rotation for horizontal bars */
+  &.top::after, &.bottom::after {
+    rotate: 90deg;
+  }
   &.right, &.left {
     cursor: ew-resize;
     top: 0;
     width: 5px;
-    height: 100%;
+    // height: 100%;
   }
   &.right {
     right: 0;
@@ -20,7 +34,7 @@
     cursor: ns-resize;
     left: 0;
     height: 5px;
-    width: 100%;
+    // width: 100%;
   }
   &.top {
     top: 0;

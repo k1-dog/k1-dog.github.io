@@ -276,7 +276,8 @@ export class WebGPU3D implements Renderer {
 
   // clipMatrix/sight — camera3 同一次取景产出（渲染与命中同源）
   flush($model: TsuModel, $regionDrawing: Bounds | null, $regionBigDrawing?: number[],
-        $clipMatrix?: Float32Array | null, $sight?: Vec3 | null): void {
+        $clipMatrix?: Float32Array | null, $sight?: Vec3 | null,
+        $_underlay?: { paths: Path2D[], color: number } | null): void {
     if (!this.ready || this.lost || !this.device || !this.context || !this.canvas) return
     const big = $regionBigDrawing ?? []
     if (big.length === 0) return                       // 帧持久

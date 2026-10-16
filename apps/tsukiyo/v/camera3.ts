@@ -157,7 +157,10 @@ export class CoordMapper2D implements CoordMapper {
   private viewW = 0
   private viewH = 0
 
-  private gazeM = new Float32Array(6)   // [z,0,0,z,gx,gy] 复用零分配
+  // identity [1,0,0,1,0,0] — an all-zero initial matrix would collapse any
+  // consumer that reads clipMatrix BEFORE the first frame() (e.g. the grid
+  // layer repaint fed by Hcvs_retina's setTransform)
+  private gazeM = new Float32Array([1, 0, 0, 1, 0, 0])   // [z,0,0,z,gx,gy] 复用零分配
   private moved = false                 // 取景变化标志（frame 消费即清）
 
   get clipMatrix(): Float32Array | null { return this.gazeM }

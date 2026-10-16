@@ -161,6 +161,13 @@ export default defineComponent({
         node.style.overflow = '' /*null*/
         // node.style.display = node.dataset.oldDisplay!
         node.style.transition = ''
+        // Release the inline size lock: during the enter transition the
+        // element was pinned to the size captured when the animation
+        // started (possibly a stale size from before a content swap);
+        // with the transition cleared, hand sizing back to CSS layout
+        // (e.g. width: max-content) so the content drives the size.
+        node.style.width = ''
+        node.style.height = ''
         _S$Kill2PropertyContext(node)
         ctx.emit('notifyEntered') 
       }
@@ -182,47 +189,33 @@ export default defineComponent({
         _T$endTimer && window.clearTimeout(_T$endTimer as any)
         node.style.display = 'inline-block'
         let _T00X: number | null | undefined = window.setTimeout(() => {
-          _S$Keep2PropertyContext(node)
-          node.style.overflow = 'hidden'
-          node.style.opacity = '1'
-          node.style.transform = `scale(1.23)`
-          node.style.height = parseInt(node.dataset.oldTrusyHeight!) + 'px'
-          node.style.width = parseInt(node.dataset.oldTrusyWidth!) + 'px'
-          // node.style.width = node.style.height = '0px'
-          // node.style.paddingTop = node.style.paddingBottom = node.style.paddingLeft = node.style.paddingRight = '0'
-          node.style.borderTopWidth = '5px'
-          node.style.borderRightWidth = '5px'
-          node.style.borderLeftWidth = '5px'
-          node.style.transition = baseTrans.transition!
           MTBeforeExit(node)
           window.clearTimeout(_T00X!)
           _T00X = null || undefined
         }, 0)
       }
     }
-    function MTBeforeExit (node: HTMLElement | null) {
-      // ! 挂载完成并且初始化完成
-      if (!!node) {
-        node.style.opacity = '0.79'
-        node.style.transform = `scale(0.79)`
-        _T$endTimer = window.setTimeout(() => {
-          node.style.borderTopWidth = '0px'
-          node.style.borderRightWidth = '10px'
-          node.style.borderLeftWidth = '10px'
-          MTAfterExit(node)
-        }, DEF_DUR * 1000 + 10)
-      }
+    // ! 快速淡出退出: 不做缩放/边框扭动, 仅快速渐渐透明消失
+    function MTBeforeExit (node: HTMLElement | null): void {
+      if (!node) return
+      node.style.transition = 'opacity 0.16s ease-out'
+      // force a style flush so the fade always starts from the visible state
+      void (node as HTMLElement).offsetWidth
+      node.style.opacity = '0'
+      _T$endTimer = window.setTimeout(() => {
+        MTAfterExit(node)
+      }, 160 + 10)
     }
     function MTAfterExit (node: HTMLElement | null) {
       if (!!node) {
-        node.style.borderTopWidth = '5px'
-        node.style.borderRightWidth = '5px'
-        node.style.borderLeftWidth = '5px'
-        node.style.overflow = '' /*null*/
-        node.style.opacity = '0' // ''空值 和 0 是两回事 要设置成0
-        node.style.transform = 'scale(1)'
+        node.style.opacity = '0'
         node.style.transition = ''
         node.style.display = 'none'
+        // Same inline size lock release as on enter-completion: the
+        // element is display:none now, this is pure state hygiene so the
+        // next enter captures a clean size in _S$Keep2PropertyContext.
+        node.style.width = ''
+        node.style.height = ''
         _S$Kill2PropertyContext(node)
         ctx.emit('notifyEnded')
       }

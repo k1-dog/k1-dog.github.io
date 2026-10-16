@@ -3,6 +3,7 @@ import { HangRoot, M9Drag1nWindow, M9Dragger } from "@k1/utils"
 import Button from "../Button/Button"
 import M9Icon from '@k1/styles/assets/_'
 // import { M9WebAdaptor } from "../Grid/Grid"
+import OutlineX from "./OutlineX"
 import { preCls, M9ModalProps, M9ModalState, M9DrawerProps } from "./controller"
 import classNames from "classnames"
 
@@ -34,28 +35,34 @@ export default defineComponent({
     }
   },
   emits: ['ok', 'close', 'update:modelValue'],
-  setup (props, ctx) {
+  setup(props, ctx) {
     const modalRef = ref<any>()
     const modalHeadRef = ref<any>()
     const m9DraggerRef = ref<any>()
+    const outlineRef = ref<any>()
+
+    // ? notify the organic outline that the modal geometry changed (drag/resize/zoom/show)
+    function onNotifyOutlineRefresh() {
+      outlineRef.value?.refresh()
+    }
 
     const state = reactive<M9ModalState>({
       isShow: false,
       zoomValue: false
     })
 
-    function onOk () {
+    function onOk() {
       ctx.emit('ok')
       ctx.emit('update:modelValue', false)
     }
 
-    function onClose () {
+    function onClose() {
       state.isShow = false
       ctx.emit('close')
       ctx.emit('update:modelValue', false)
     }
 
-    function onZoomChange () {
+    function onZoomChange() {
       if (mount_info.is_drawer) {
         return
       }
@@ -63,16 +70,19 @@ export default defineComponent({
       state.zoomValue = !state.zoomValue
 
       m9DraggerRef.value.onNotifyUpdateState()
+      onNotifyOutlineRefresh()
     }
 
-    let destroyHeadDragHandler: Function = () => {}
-    function dragModalHeaderHandler (el, offset, finalPosition) {
+    let destroyHeadDragHandler: Function = () => { }
+    function dragModalHeaderHandler(el, offset, finalPosition) {
+      if (!modalRef.value) return
       modalRef.value.style.left = `${finalPosition.left}px`
       modalRef.value.style.top = `${finalPosition.top}px`
-      
+
       m9DraggerRef.value.onNotifyUpdateState()
+      onNotifyOutlineRefresh()
     }
-    function onDragModalHeader ($modalHeadRef) {
+    function onDragModalHeader($modalHeadRef) {
       if (mount_info.is_drawer) {
         return
       }
@@ -82,7 +92,8 @@ export default defineComponent({
       destroyHeadDragHandler = M9Drag1nWindow(modalHeadRef.value, dragModalHeaderHandler)
     }
 
-    function onDragModalEndHandler (callbackDragArgs) {
+    function onDragModalEndHandler(callbackDragArgs) {
+      if (!modalRef.value) return
       const { nextWidth, nextHeight, nextLeft, nextTop } = callbackDragArgs
 
       modalRef.value.style.left = `${nextLeft}px`
@@ -91,10 +102,11 @@ export default defineComponent({
       modalRef.value.style.height = `${nextHeight}px`
 
       m9DraggerRef.value.onNotifyUpdateState()
+      onNotifyOutlineRefresh()
     }
 
     // * 美九弹框组件内部 - 自动接收抽屉属性 -> 相关样式及逻辑, 自动锁定为抽屉样式和交互逻辑
-    function M$CreateDrawer (_drawerPlacement: M9DrawerProps['placement']) {
+    function M$CreateDrawer(_drawerPlacement: M9DrawerProps['placement']) {
       const placement = _drawerPlacement
       if (!placement) return
 
@@ -114,7 +126,7 @@ export default defineComponent({
       M$CreateDrawer(props.placement)
     })
 
-    
+
     onMounted(() => {
       // ? 为弹框头部添加位移拖拽事件
       // destroyHeadDragHandler = M9Drag1nWindow(modalHeadRef.value, onHeadDragEvent)
@@ -143,13 +155,14 @@ export default defineComponent({
         }
         nextTick(() => {
           m9DraggerRef.value.onNotifyUpdateState()
+          onNotifyOutlineRefresh()
         })
       }
     })
 
-    return { mount_info, m9DraggerRef, modalRef, modalHeadRef, state, onOk, onClose, onZoomChange, onDragModalHeader, onDragModalEndHandler }
+    return { mount_info, m9DraggerRef, modalRef, modalHeadRef, outlineRef, state, onOk, onClose, onZoomChange, onDragModalHeader, onDragModalEndHandler }
   },
-  render () {
+  render() {
     const {
       mount_info,
       state: { isShow, zoomValue },
@@ -183,17 +196,19 @@ export default defineComponent({
     // console.log('🚀 ~ render ~ mount_info:', mount_info)
 
     return (
-      <HangRoot isOpen={isShow} isActive root-id={`m9-modal-bigRoot-${mount_info.id}`} style={{ background:'#0000008c', position: 'fixed', top: '0px', left: '0px', zIndex: mount_info.zIndex, width: '100%', height: '100%' }}>
+      <HangRoot isOpen={isShow} isActive root-id={`m9-modal-bigRoot-${mount_info.id}`} style={{ background: '#0000008c', position: 'fixed', top: '0px', left: '0px', zIndex: mount_info.zIndex, width: '100%', height: '100%' }}>
         <Transition name={preCls}>
           <M9Dragger ref={(_draggerRef_: any) => this.m9DraggerRef = _draggerRef_} v-show={isShow} {...draggerDirectionProps} isAutoCalculate onDragend={onDragModalEndHandler} style={{ 'position': 'absolute', 'width': '100%', 'height': '100%', 'display': 'flex', 'justify-content': 'center', 'align-items': 'center' }}>
-              <div className={modal_cls} ref={(_modalR_: any) => this.modalRef = _modalR_}>
+            <div className={modal_cls} ref={(_modalR_: any) => this.modalRef = _modalR_}>
+              {/* organic outline canvas — covers the modal, stroke-only, no pointer events */}
+              <OutlineX ref={(_outlineR_: any) => this.outlineRef = _outlineR_} getHost={() => this.modalRef} >
                 <div className={`${preCls}__header`} ref={(_headR_: any) => onDragModalHeader(_headR_)}>
                   <div className={`${preCls}__header-title`}>{title}</div>
                   <div className={`${preCls}__header-rightbar`}>
                     {
                       // 这是个 放大 | 缩小 的功能图标按钮
                       !mount_info.is_drawer
-                      && ( zoomValue
+                      && (zoomValue
                         && <M9Icon icon="zoom-in" onClick={onZoomChange} style="width: 1.5rem; height: 1.5rem; color: #c55cff;"></M9Icon>
                         || <M9Icon icon="zoom-out" onClick={onZoomChange} style="width: 1.5rem; height: 1.5rem; color: #c55cff;"></M9Icon>
                       )
@@ -206,14 +221,15 @@ export default defineComponent({
                   </div>
                 </div>
                 <div className={`${preCls}__body`}>
-                  { children }
+                  {children}
                 </div>
                 <div className={`${preCls}__footer`}>
                   <Button onClick={onOk}>确定</Button>
                   <div style="width: 2px; height: 1.5rem; background-color: #b8b8b8; margin: 0.5rem;"></div>
                   <Button onClick={onClose}>取消</Button>
                 </div>
-              </div>
+              </OutlineX>
+            </div>
           </M9Dragger>
         </Transition>
       </HangRoot>

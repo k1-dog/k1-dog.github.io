@@ -14,7 +14,7 @@ const M9DragHelperComponent = defineComponent({
       default: 'y'
     }
   },
-  setup (props) {
+  setup(props) {
     const state = reactive({ direction: 'y', x: 0, y: 0, opacity: 0 })
 
     const positionStyle = computed(() => {
@@ -30,13 +30,13 @@ const M9DragHelperComponent = defineComponent({
       }
     })
 
-    function onChangePosition (newPosition = { x: 0, y: 0, opacity: 0 }) {
+    function onChangePosition(newPosition = { x: 0, y: 0, opacity: 0 }) {
       state.x = newPosition.x
       state.y = newPosition.y
       state.opacity = newPosition.opacity
     }
 
-    function onChangeDirection ($direction = 'y') {
+    function onChangeDirection($direction = 'y') {
       state.direction = $direction
     }
 
@@ -50,7 +50,7 @@ const M9DragHelperComponent = defineComponent({
 
     return { state, positionStyle, onChangePosition, onChangeDirection }
   },
-  render () {
+  render() {
     const { direction } = this.state
     const dragHelperCls = classNames("m9-drag-helper", { 'x': direction === 'x', 'y': direction === 'y' })
     return <div className={dragHelperCls} style={this.positionStyle}></div>
@@ -59,11 +59,9 @@ const M9DragHelperComponent = defineComponent({
 
 // ? 单例模式 - 全系统仅提供一个 拖拽-helper 提示线元素, 最大程度节省性能
 
-function M9DragHelperCtor () {
-  // ! 闭包定义变量名 - 防止全部变量污染
+function M9DragHelperCtor() {
   // ! 为了实现 createApp().mount() 形式的单例组件模式, 我们记录一个该单实例组件需要的容器元素,
   // ! 然后 createApp 初始化单实例时, 在beforeMount周期内, 自动创建该div容器元素, 后边才能正常 mount 挂载
-  // var helper_div_root: HTMLDivElement = document.createElement('div')
   // ! 这里试着用 createApp 创造一个 dragHelper 组件唯一实例, 然后 mount "#app" 挂载报错, 提示已经有一个实例挂载到 #app下边了 ...
   var one_m9DragHelper
   return ($props, helper_div_root: HTMLDivElement = document.createElement('div')) => one_m9DragHelper = one_m9DragHelper || createApp(M9DragHelperComponent, {

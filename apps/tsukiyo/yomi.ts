@@ -15,7 +15,7 @@ export interface Ray3 {
 }
 
 export const enum Prim {
-  Rect, Arc, Line, Curve, Circle, Text, Triangle,
+  Rect, Arc, Line, Curve, Circle, Text, Triangle, Ring,
 }
 
 // 占位符 — 继承坐标系计算值（Arc 角度占位 = 按 value 比例分配）
@@ -52,10 +52,12 @@ export interface AxisRule {
 }
 
 // —— 坐标系参数包 ——
-// 坐标系初始参数：θ=polar 起始角（paths 消费）；y0=Y 轴是否 0 基线 + 1.2 上扩（缺省 true；连续值域显式 false）
+// 坐标系初始参数：θ=polar 起始角（paths 消费）；y0=Y 轴是否 0 基线 + 1.2 上扩（缺省 true；连续值域显式 false）；
+// zoom=初始视线缩放（缺省 1 = 不缩放；engine 在首次成功 coord 投影后经 zoomBy 一次性应用，与滚轮缩放同路径同效果）
 export interface TsukiyoInit {
   θ?: number
   y0?: boolean
+  zoom?: number
 }
 
 // —— 坐标系定位器（resolveCoordLocator 返回值）——
@@ -63,9 +65,8 @@ export interface TsukiyoInit {
 export interface ITsukiyoLocator {
   x: AxisRule
   y: AxisRule
-  grid: 'cartesian' | 'polar' | 'radar'   // 网格族（layering 单源判定）
+  grid: 'cartesian' | 'polar' | 'radar'   // grid family of the default layer (layering single source)
   init?: TsukiyoInit                      // 参数包（θ/y0）
-  coordRule?: CoordRule                   // 解析输入 — engine 构造挂载，coord task 解析后覆盖
   ctx?: CoordCtx | null                   // 最近一次投影产物 — coordTask 单点写
 }
 
@@ -89,6 +90,60 @@ export interface CoordCtx {
   xMax?: number      // X 数值域上界
 }
 
+// —— 跨图形路径封闭 ——
+// 元素的 Δ 连接目标声明：由 paths 回调逐元素返回，
+// 引擎不做任何隐式系列推断（连接语义的唯一事实源）。
+// 锚点偏移声明自描述坐标系（引擎不查图形类型）：
+//   ΔfromP/ΔtoP — 笛卡尔锚（Line/Curve 等直角坐标链）
+//   Δr/Δangle°  — 极坐标锚（arc 等扇段链）：锚 = x + Δr·cos(θ+Δangle°)…
+//   θ 取目标元素极坐标语义角度（arc aux 角度），未声明时退化为笛卡尔
+export interface SealConf {
+  Δi: number                    // target element row index（目标元素行号）
+  ΔfromP?: [number, number]     // cartesian source anchor offset（源锚点偏移；缺省 _ = [0,0]）
+  ΔtoP?: [number, number]       // cartesian target anchor offset（目标锚点偏移；缺省 _ = [0,0]）
+  Δr?: number                   // polar radius offset（极坐标半径偏移；扇段链）
+  'Δangle°'?: number            // polar angle offset in degrees（极坐标角度偏移）
+  Δloop?: boolean               // join the closed fill chain?（缺省 true；
+                                // false = stroke geometry only, skip the fill lane）
+}
+
+// paths 回调 — 逐元素问询跨图形封闭规则
+//   返回 SealConf → 显式连接（Δi 越界/目标非 Line/Curve 守卫为断开）
+//   返回 null / undefined → 断开（Δ=0）
+//   缺省不传 → defaultSeal（{Δi: i+1}，折线系列紧密连接）
+export type SealFn = (el: Element, i: number, model: TsuModel, ctx: CoordCtx) => SealConf | null
+
+// —— layering 分层配置 ——
+// 每个分层 = 一个完整子图表引擎（独立 canvas 层 + 独立核心工作流 input→point→coord→paths→layering→draw）；
+// 未传 layering 回调时默认 = 网格背景层（z:-1，绘制行为与旧内置 grid 完全一致）
+// PointFn 签名内联（v/shape.ts 的同名类型会循环导入 yomi，此处仅声明结构）
+export interface LayerPointFn {
+  (el: Element, plugins: Plugins, index: number): any
+}
+export interface LayerConf {
+  input: any[]          // 层元素数据
+  point: LayerPointFn   // 层元素 → Shape
+  coord: CoordRule      // 层坐标规则
+  paths?: SealFn        // 层路径封闭（可选）
+  dim?: DimConf         // 层维度（可选）
+  z: number             // numeric z-order: layers sort by z; z<0 below the main canvas, z>0 above
+  /** layer size rule — 'host' = glue the layer canvas to the LAYER HOST
+   *  (the main canvas' parent) with CSS inset:0 stretch: the layer keeps
+   *  the host edges NO MATTER how the main canvas resizes or insets
+   *  (decoration frames etc). undefined = track the main engine viewport
+   *  (default; the grid-layer behaviour). The main resize cascade skips
+   *  'host' layers entirely — workflows stay decoupled */
+  size?: 'host'
+  /** camera sharing rule — true = the sub-engine rides the MAIN camera
+   *  (its rendering re-transforms with the main layer's zoom/pan, e.g. a
+   *  background layer that must track the view). undefined/false = an
+   *  ISOLATED camera of its own: main-layer zoom/pan never touches this
+   *  layer (decorations etc). The sub-engine NEVER binds DOM events
+   *  (interact:false) — sharing is rendering-only, never event-side */
+  sharedCamera?: boolean
+}
+export type LayoutFn = () => { layers: LayerConf[] }
+
 export interface Task {
   name: string
   done: boolean
@@ -102,10 +157,13 @@ export type RenderMode = '2d' | '3d'
 export interface Renderer {
   init(canvas: HTMLCanvasElement): void
   /** regionDrawing 重绘域（脏 AABB 合并，clearRect+clip）；regionBigDrawing 补绘名单（域内脏 ∪ 域内相交）；
- *  clipMatrix 裁剪矩阵 + sight 视线（同一次取景产出，渲染命中同源）；两者 Canvas2D 忽略 */
+ *  clipMatrix 裁剪矩阵 + sight 视线（同一次取景产出，渲染命中同源）；两者 Canvas2D 忽略。
+ *  underlay — closed-path fill layer (paths-stage derived Path2D chains + registered color);
+ *  painted after clearRect and before the batched prims, so it always sits under the strokes */
   flush(
     model: TsuModel, regionDrawing: Bounds | null, regionBigDrawing?: number[],
     clipMatrix?: Float32Array | null, sight?: Vec3 | null,
+    underlay?: { paths: Path2D[], color: number } | null,
   ): void
 }
 
@@ -135,7 +193,6 @@ export interface Spatial {
   remove(eid: number): void
   update(eid: number, bounds: Bounds): void
   queryPoint(p: Vec2): number[]
-  queryRange(bounds: Bounds): number[]
   clear(): void
 }
 

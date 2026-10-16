@@ -39,12 +39,12 @@ export default defineComponent({
     },
   },
   emits: ['change', 'update:modelValue'],
-  setup (props, ctx) {
+  setup(props, ctx) {
     const state = reactive<MSwitcherState>({
       isOpen: false
     })
-    
-    function onSwitch () {
+
+    function onSwitch() {
       if (props.disabled) {
         return
       }
@@ -55,8 +55,8 @@ export default defineComponent({
       })
     }
 
-    watch(() => props.modelValue, (switchValue) => {
-      state.isOpen = switchValue
+    watch(() => props.modelValue, ($switchValue) => {
+      state.isOpen = $switchValue
     })
 
     return {
@@ -68,10 +68,10 @@ export default defineComponent({
     const { isOpen } = this.state
     const { isLoading, size, disabled } = this.$props
     const { class: _class } = this.$attrs
-    
+
     const preCls = 'miku-switcher'
-    
-    const __cls: any = {
+
+    let __cls: Record<string, boolean> = {
       [`${preCls}--actived`]: isOpen,
       [`${preCls}--unactived`]: !isOpen,
       [`${preCls}--loading`]: isLoading,
@@ -83,7 +83,7 @@ export default defineComponent({
 
     const leftVNode = this.$slots.uncheckVnode && this.$slots.uncheckVnode() || 'no'
     const rightVNode = this.$slots.checkVnode && this.$slots.checkVnode() || 'yes'
-    
+
     return (
       <div className={switcherCls} onClick={this.onSwitch}>
         <div className={`${preCls}__left`}>{leftVNode}</div>

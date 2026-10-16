@@ -6,9 +6,10 @@
  * 内置 preset：'Bar'/'Line'/'polar'/'radar' 仅是预制组合（builtin 查表），可通过 resolveCoordLocator 传入自定义定位器或工厂。
  */
 import type { AxisRule, CoordCtx, CoordRule, Element, ITsukiyoLocator } from '../yomi'
+import { Prim } from '../yomi'
 import type { TsuModel } from '../m/model'
 import { Hm_mapRange } from '../helper/maths'
-import { ARC_START_ANGLE, RADAR_LABEL_PAD, TAU, VALUE_MAX_EXPAND } from '../helper/const'
+import { ARC_START_ANGLE, GEO_SLOTS_EACH_ELEM, RADAR_LABEL_PAD, TAU, VALUE_MAX_EXPAND } from '../helper/const'
 
 
 /** 雷达有效半径 = min(w,h)/2 − 标签位（单点定义，grid/coord 同源） */
@@ -172,10 +173,20 @@ export function coordTask($model: TsuModel, $locator: ITsukiyoLocator, $viewWidt
     const tx = $locator.x.at(el, dimX, dimY, ctx)
     const ty = $locator.y.at(el, dimX, dimY, ctx)
 
+    // centered-anchor rect (Shapes.rectC) — the projection anchors the rect
+    // CENTER; convert to the top-left the renderer expects so the element
+    // sits symmetric on its column-center tick
+    let px = tx
+    let py = ty
+    if ($model.type[_i] === Prim.Rect && $model.aux[_i * GEO_SLOTS_EACH_ELEM] === 1) {
+      px = tx - $model.w[_i] / 2
+      py = ty - $model.h[_i] / 2
+    }
+
     // 位置只 snap 不动画（缩放动画归 render）
-    if ($model.x[_i] !== tx || $model.y[_i] !== ty) {
-      $model.x[_i] = tx
-      $model.y[_i] = ty
+    if ($model.x[_i] !== px || $model.y[_i] !== py) {
+      $model.x[_i] = px
+      $model.y[_i] = py
       $model.markDirty(_i)
     }
   }

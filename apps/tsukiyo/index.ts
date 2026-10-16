@@ -1,11 +1,11 @@
 /**
- * tsukiyo (月读) — 极简 2D/3D 可视化库。
- * 设计哲学：图表类型 = coord 规则 + point 映射的组合（Bar/Line/Radar 非独立类）。
+ * tsukiyo (月读) — 极简 2D/3D 可视化库
+ * 设计哲学：图表类型 = coord 规则 + point 映射的组合（Bar/Line/Radar 非独立类）
  * 核心架构：SoA 唯一数据源（13 个平行 TypedArray 零冗余）；Scheduler 唯一时钟（16ms lockstep）；
  * 数据流 input→point→coord→paths→interact→layering→draw；空间哈希网格+脏矩形局部重绘；
- * Intake 摄入口（外部事件统一缓冲）；Schedulable 幂等 bind/unbind；WebGPU 优先 Canvas2D 回退。
+ * Intake 摄入口（外部事件统一缓冲）；Schedulable 幂等 bind/unbind；WebGPU 优先 Canvas2D 回退
  * 目录四层治理：helper/（const/canvas Hcvs_/maths Hm_/kit Hs_）· m/（model SoA 出口 / std 标准化）
- * · v/（shape/coord/paths/layering/camera3/render+render-3d+wgsl/interact）· middleware/（scheduler/engine/index/spatial/dirty）。
+ * · v/（shape/coord/paths/layering/camera3/render+render-3d+wgsl/interact）· middleware/（scheduler/engine/index/spatial/dirty）
  *
  * .eg new Tsukiyo(canvas).input([10,20,100]).coord('Bar')
  *        .point((el,p,i) => Shapes.rect(30, el.value, rgba(100,149,237,200))).draw()
@@ -21,8 +21,8 @@ export type { PointFn } from './v/shape'
 export { Hm_palette as palette } from './helper/maths'
 export { coordTask, resolveCoordLocator, radarRadius, Axis } from './v/coord'
 export type { AxisKit } from './v/coord'
-export { pathsTask } from './v/paths'
-export type { PathsHook } from './v/paths'
+export { pathsTask, defaultSeal } from './v/paths'
+export type { SealFn, SealConf, LayerConf, LayoutFn } from '../yomi'
 
 // 数据模型 / 引擎 & 调度
 export { TsuModel } from './m/model'

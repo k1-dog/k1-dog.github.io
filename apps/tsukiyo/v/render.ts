@@ -6,7 +6,7 @@
  * 大名单 = 脏元素 ∪ 域内相交非脏（layering 产出）。
  */
 
-import type { Renderer, Bounds, Prim, RenderMode } from '../yomi'
+import type { Renderer, Bounds, Prim, RenderMode, Vec3 } from '../yomi'
 import { Prim as P } from '../yomi'
 import type { TsuModel } from '../m/model'
 import { WebGPU3D } from './render-3d'
@@ -14,9 +14,10 @@ import { CoordMapper2D, CoordMapper3D } from './camera3'
 import type { CoordMapper } from '../yomi'
 import { Hm_rgbaStr, Hm_alphaFill, Hm_palette } from '../helper/maths'
 import { Hcvs_batch } from '../helper/canvas'
+import { bezier3ToCurve } from './paths'
 import {
-  CURVE_NORMAL_RATIO, GEO_SLOTS_EACH_ELEM, TAU, TEXT_DEFAULT_SIZE,
-  HOVER_SCALE, STROKE_NORMAL, STROKE_LOCKED, ARC_GAP_EPS,
+  GEO_SLOTS_EACH_ELEM, TAU, TEXT_DEFAULT_SIZE,
+  HOVER_SCALE, STROKE_NORMAL, STROKE_LOCKED, ARC_GAP_EPS, RING_WIDTH_RATIO,
 } from '../helper/const'
 
 
@@ -31,7 +32,8 @@ class Canvas2D implements Renderer {
   }
 
   // clipMatrix 恒忽略（全清全重绘由 layering 保证）
-  flush($model: TsuModel, $regionDrawing: Bounds | null, $regionBigDrawing?: number[], $_clipMatrix?: Float32Array | null): void {
+  flush($model: TsuModel, $regionDrawing: Bounds | null, $regionBigDrawing?: number[], $_clipMatrix?: Float32Array | null, $_sight?: Vec3 | null,
+        $underlay?: { paths: Path2D[], color: number } | null): void {
     const ctx = this.ctx
 
     if (!ctx || !this.canvas) return
@@ -48,13 +50,22 @@ class Canvas2D implements Renderer {
       ctx.clearRect(0, 0, w, h)
     }
 
-    // clip 到重绘域
+    // clip 到重绘域（underlay 与 batches 共用 —— 填充同样只能落在
+    // clearRect 覆盖过的区域内，否则旧位置的填充像素不被清除 → 残影）
     if ($regionDrawing) {
       const [min, max] = $regionDrawing
       ctx.save()
       ctx.beginPath()
       ctx.rect(min[0], min[1], max[0] - min[0], max[1] - min[1])
       ctx.clip()
+    }
+
+    // underlay — closed-path fill layer (paths-stage derived chains + the
+    // color registered via engine.setFill). Painted under the strokes;
+    // clipped to the dirty region so a moved chain's OLD fill cannot linger
+    if ($underlay && $underlay.paths.length > 0) {
+      ctx.fillStyle = Hm_rgbaStr($underlay.color)
+      for (const path of $underlay.paths) ctx.fill(path)
     }
 
     // 分桶批渲染
@@ -75,7 +86,8 @@ class Canvas2D implements Renderer {
   ): void {
     const fillStr = ($packed: number) => Hm_rgbaStr($packed)
 
-    for (const i of $indices) {
+    for (let slot = 0; slot < $indices.length; slot++) {
+      const i = $indices[slot]
 
       const x = $model.x[i]
       const y = $model.y[i]
@@ -173,6 +185,25 @@ class Canvas2D implements Renderer {
           break
         }
 
+        case P.Ring: {
+          // aux[0] = r — hollow stroked circle, never filled (ripple/halo
+          // semantics). the stroke start point sits ON the circle (x + r),
+          // so the ring has no center spoke; the stroke width stays
+          // proportional to the radius (thin ring at every scale); anim
+          // growth scales the radius only (the ring stays a full ring)
+          const a = i * GEO_SLOTS_EACH_ELEM
+          let _r = $model.aux[a] * t
+          if (_r <= 0) continue   // not yet shaped — skip this element
+          if (isHover) _r *= HOVER_SCALE
+          $ctx.lineWidth = Math.max(1, _r * RING_WIDTH_RATIO)
+          $ctx.strokeStyle = fillStr(fill)
+          $ctx.beginPath()
+          $ctx.moveTo(x + _r, y)
+          $ctx.arc(x, y, _r, 0, TAU)
+          $ctx.stroke()
+          break
+        }
+
         case P.Text: {
           $ctx.font = `${h > 0 ? h : TEXT_DEFAULT_SIZE}px sans-serif`
           $ctx.textBaseline = 'top'
@@ -185,16 +216,18 @@ class Canvas2D implements Renderer {
           const gw = w * t
           const gh = h * t
           const a = i * GEO_SLOTS_EACH_ELEM
-          const bend = $model.aux[a + 2] || 1   // 弯曲方向符号
           $ctx.lineCap = 'round'
           $ctx.lineWidth = isLocked ? STROKE_LOCKED : STROKE_NORMAL
           if (isLocked) $ctx.strokeStyle = strokeStr
           $ctx.beginPath()
           $ctx.moveTo(x, y)
-          // 控制点 = 中点 + 法向 (-gh, gw) × ratio × bend
-          const cpx = x + gw / 2 - gh * CURVE_NORMAL_RATIO * bend
-          const cpy = y + gh / 2 + gw * CURVE_NORMAL_RATIO * bend
-          $ctx.quadraticCurveTo(cpx, cpy, x + gw, y + gh)
+          // unified cubic lane — bezier3ToCurve (shared with the fill lane)
+          // covers both cp1+cp2-specified and the exact quadratic lift
+          const { c1x, c1y, c2x, c2y } = bezier3ToCurve(
+            x, y, gw, gh,
+            $model.aux[a], $model.aux[a + 1], $model.aux[a + 2], $model.aux[a + 3],
+          )
+          $ctx.bezierCurveTo(c1x, c1y, c2x, c2y, x + gw, y + gh)
           $ctx.stroke()
           if (isLocked) $ctx.strokeStyle = fillStr(fill)
           break

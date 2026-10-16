@@ -21,6 +21,27 @@
   <span>普通标签</span>
   <template #content><span>云茹将军参上！</span></template>
 </m9-popover>
+<div>
+  <span>中间夹杂一个单例管控的独立气泡</span>
+  <div>
+    <m9-popover position="right" :isPoperOne="false">
+      <m9-button>折纸</m9-button>
+      <template #content><span>大师参上！</span></template>
+    </m9-popover>
+    <m9-popover position="right" :isPoperOne="false">
+      <m9-button>二亚</m9-button>
+      <template #content><span>老阿姨参上！</span></template>
+    </m9-popover>
+    <m9-popover position="down">
+      <m9-button>三三</m9-button>
+      <template #content><span>三三参上！</span></template>
+    </m9-popover>
+    <m9-popover position="right" :isPoperOne="false">
+      <m9-button>小四</m9-button>
+      <template #content><span>绅士四参上！</span></template>
+    </m9-popover>
+  </div>
+</div>
 
 **代码**
 
@@ -39,9 +60,26 @@
     <m9-button>右侧气泡</m9-button>
   </m9-popover>
   <m9-popover position="right">
-  <span>普通标签</span>
-  <template #content><span>云茹将军参上！</span></template>
-</m9-popover>
+    <span>普通标签</span>
+    <template #content><span>云茹将军参上！</span></template>
+  </m9-popover>
+  <div>
+    <span>中间夹杂一个单例管控的独立气泡</span>
+    <div>
+      <m9-popover :content="{<span>pop 折纸</span>}" position="right" :isPoperOne="false">
+        <m9-button>折纸</m9-button>
+      </m9-popover>
+      <m9-popover :content="{<span>pop 二二阿姨</span>}" position="right" :isPoperOne="false">
+        <m9-button>二亚</m9-button>
+      </m9-popover>
+      <m9-popover :content="{<span>pop 三三</span>}" position="right" :isPoperOne="false">
+        <m9-button>三三</m9-button>
+      </m9-popover>
+      <m9-popover :content="{<span>pop 绅士四</span>}" position="right" :isPoperOne="false">
+        <m9-button>小四</m9-button>
+      </m9-popover>
+    </div>
+  </div>
 </template>
 ```
 
@@ -51,6 +89,7 @@
 | ------------ |:-------------:| -----:| -----: |
 | position     | 气泡弹出位置                 | top/down/left/right |  down        |
 | content      | 气泡框内部的自定义元素内容插槽 | vnode               |  () => vnode |
+| isPoperOne   | true=全局单例气泡（受 controller 管制，默认）；false=独立气泡，脱离 controller 自行渲染 | boolean | true |
 
 **事件**
 

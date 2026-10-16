@@ -45,6 +45,11 @@ export class TsuModel {
   hoverSlots = new Set<number>()  // hover 槽位集 — setHoverSlots/clearHover 唯一写入
   clickSlots = new Set<number>()  // click 锁定集 — setClickSlots/clearClick 唯一写入
 
+  /** snap-anim mode — point 定型直接写 anim=1（跳过生长动画）；
+   * 逐帧数据重投场景（过场动画）必开：pointTask 每帧重定型会归零 anim，
+   * 生长通道永远走不完 → 全场景不可见。默认 false 零回归 */
+  snapAnim = false
+
   constructor(cap = DEFAULT_CAP) {
     this.capacity = cap
     this.src     = new Uint32Array(cap)
@@ -223,8 +228,8 @@ export class TsuModel {
   aabbInto($i: number, $out: Bounds): Bounds {
     const x = this.x[$i], y = this.y[$i]
     const t = this.type[$i]
-    // Arc/Circle — 半径正方形包围盒
-    if (t === Prim.Arc || t === Prim.Circle) {
+    // Arc/Circle/Ring — 半径正方形包围盒
+    if (t === Prim.Arc || t === Prim.Circle || t === Prim.Ring) {
       const r = this.aux[$i * GEO_SLOTS_EACH_ELEM]
       $out[0][0] = x - r; $out[0][1] = y - r
       $out[1][0] = x + r; $out[1][1] = y + r
@@ -251,6 +256,21 @@ export class TsuModel {
 
     $out[0][0] = Math.min(x, x + w); $out[0][1] = Math.min(y, y + h)
     $out[1][0] = Math.max(x, x + w); $out[1][1] = Math.max(y, y + h)
+    // Curve — 端点盒并入贝塞尔控制点：cp 在端点外时弧线跑出端点盒
+    // （region 清不到 → 弧线残影；hit 粗筛同漏）。有限 cp 才并（NaN = 默认
+    // lift，其 cp 由端点推导必在端点盒内）
+    if (t === Prim.Curve) {
+      const a = $i * GEO_SLOTS_EACH_ELEM
+      const cp1x = this.aux[a], cp1y = this.aux[a + 1],
+            cp2x = this.aux[a + 2], cp2y = this.aux[a + 3]
+      if (Number.isFinite(cp1x) && Number.isFinite(cp1y) &&
+          Number.isFinite(cp2x) && Number.isFinite(cp2y)) {
+        $out[0][0] = Math.min($out[0][0], cp1x, cp2x)
+        $out[0][1] = Math.min($out[0][1], cp1y, cp2y)
+        $out[1][0] = Math.max($out[1][0], cp1x, cp2x)
+        $out[1][1] = Math.max($out[1][1], cp1y, cp2y)
+      }
+    }
     return $out
   }
 

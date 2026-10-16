@@ -1,4 +1,4 @@
-import { _TypeOf } from "@k1/utils";
+import { _TypeOf } from "./core.cjs";
 import { isVNode, VNode } from "vue";
 
 interface IUnique {

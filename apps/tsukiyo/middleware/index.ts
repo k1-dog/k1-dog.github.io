@@ -4,13 +4,13 @@
  * .eg new Tsukiyo(canvas).input([10,20,100]).coord('Bar')
  *        .point((el,p,i) => Shapes.rect(30, el.value)).draw()  // 更新：chart.data([50,60,70])
  */
-import type { DimConf, Element, Plugins, RenderMode, CoordRule } from '../yomi'
+import type { DimConf, Element, Plugins, RenderMode, CoordRule, SealFn, LayoutFn } from '../yomi'
 import { Engine } from './engine'
 import { createRenderer } from '../v/render'
 import type { PointFn } from '../v/shape'
 import { Shapes } from '../v/shape'
 import { Hm_palette as palette } from '../helper/maths'
-import type { PathsHook } from '../v/paths'
+import { defaultSeal } from '../v/paths'
 
 
 // 默认 pointFn
@@ -24,8 +24,10 @@ export class Tsukiyo {
   private raw: any[] = []
   private dim: DimConf | undefined
   private pointFn: PointFn = defaultPointFn
-  private pathsHook: PathsHook | null = null
+  private sealFn: SealFn = defaultSeal
   private coordRule: CoordRule = 'Bar'
+  private snapAnim = false
+  private layoutFn: LayoutFn | null = null
 
 
   constructor($canvas: HTMLCanvasElement) {
@@ -53,14 +55,24 @@ export class Tsukiyo {
     return this
   }
 
-  // 路径阶段 — hook 拦截封闭路径
-  paths($hook?: PathsHook): this {
-    this.pathsHook = $hook ?? null
+  // 路径阶段 — 跨图形封闭回调（Line/Curve 的 Δ 连接唯一事实源）
+  // 不传 = defaultSeal（{Δi: i+1}，折线系列紧密连接）
+  paths($fn?: SealFn): this {
+    this.sealFn = $fn ?? defaultSeal
     return this
   }
 
-  // 占位 — layering 在 engine 内自动装配
-  layering(): this {
+  // anim 通道模式 — 'snap' 定格 anim=1（逐帧数据重投场景）；缺省 'grow' 生长动画
+  anim($mode: 'grow' | 'snap'): this {
+    this.snapAnim = $mode === 'snap'
+    return this
+  }
+
+  // layering 分层回调 — 每层 = 独立子引擎（canvas 层 + 完整核心工作流），
+  // layoutRule { layers } 按数字 z 排序（z<0 主 canvas 下 / z>0 上）；
+  // 不传 = 默认 grid 网格背景层
+  layering($fn?: LayoutFn): this {
+    this.layoutFn = $fn ?? null
     return this
   }
 
@@ -72,12 +84,15 @@ export class Tsukiyo {
       renderer,
       camera,
       pointFn: this.pointFn,
-      pathsHook: this.pathsHook,
+      sealFn: this.sealFn,
       coord: this.coordRule,
     })
+    this.engine.model.snapAnim = this.snapAnim
 
     this.engine.data(this.raw, this.dim)
     this.engine.start()
+    // layering 分层注册（engine 装配完成后；null = 默认 grid 层）
+    this.engine.layers(this.layoutFn)
     return this.engine
   }
 

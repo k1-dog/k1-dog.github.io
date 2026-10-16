@@ -3,6 +3,7 @@ import { App } from 'vue'
 import { M9Row, M9Col } from './Grid/Grid'
 import M9Nav from './Navigation/Navigation'
 import M9Spin from './Spin/Spin'
+import M9Storm from './Spin/Storm'
 import M9Popover from './Popover/Popover'
 import M9Card from './Card/Card'
 import M9Tabs from './Tabs/Tabs'
@@ -19,6 +20,7 @@ import M9Form from './Form/Form'
 import M9Table from './Table/Table'
 
 import M9Msg from './Message/controller'
+import M9PopoverController from './Popover/controller'
 
 import M9Drag from '../utils/draggable/element-dragger'
 
@@ -35,6 +37,7 @@ const components = {
   M9Popover,
   M9Select,
   M9Spin,
+  M9Storm,
   M9Switch,
   M9Card,
   M9Tabs,
@@ -49,6 +52,7 @@ const vue3Install = ($app: App) => {
 }
 
 export const M9MsgX = M9Msg
+export const M9PopoverControllerX = M9PopoverController
 export const M9DragX = M9Drag
 export { Tsukiyo as K1TsukiyoX, Shapes, rgba, Prim as K1PrimX, Axis as K1AxisX } from '../tsukiyo'
 

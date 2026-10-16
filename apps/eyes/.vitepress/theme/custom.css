@@ -29,6 +29,72 @@ html.vp-sidebar-collapsed .VPSidebar {
   visibility: hidden !important;
 }
 
+/* Floating close toggle for the route-transition storm mask —
+   INSIDE the storm host (top-right of the mask area, not the nav bar);
+   the host is pointer-events:none, the button re-enables its own */
+.k1-storm-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: border-color 0.25s, color 0.25s, background-color 0.25s;
+}
+
+.k1-storm-close:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+/* Storm host — pinned over the right-hand content block by Layout.vue JS
+   (top = nav bottom, left = sidebar right, sized to the viewport edge);
+   the mask inside is position:absolute; inset:0 */
+.k1-storm-host {
+  position: fixed;
+  z-index: 40;
+}
+
+/* Single depth-of-field veil — ONE full-screen blurred backdrop wrapping
+   the storm host: the nav bar, the sidebar AND the page behind the mask
+   blur away together, while the storm scene (host, z:40) stays sharp */
+.k1-storm-blur {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  backdrop-filter: blur(8px) saturate(0.8);
+  -webkit-backdrop-filter: blur(8px) saturate(0.8);
+  background: rgba(238, 242, 247, 0.35);
+}
+
+html.dark .k1-storm-blur {
+  background: rgba(30, 32, 38, 0.35);
+}
+
+/* Theme bridge — feed the site palette into the storm mask:
+   light theme keeps the soft blue-grey, dark theme rides the site dark bg */
+:root {
+  --m9-storm-bg: var(--vp-c-bg);
+  --m9-storm-text: rgba(70, 100, 140, 0.85);
+}
+
+html.dark {
+  --m9-storm-bg: var(--vp-c-bg);
+  --m9-storm-text: rgba(170, 195, 230, 0.85);
+}
+
 /* Content expands to full width when the sidebar is hidden */
 html.vp-sidebar-collapsed .VPContent.has-sidebar {
   padding-left: 0 !important;

@@ -1,5 +1,5 @@
 
-import MRipple from './MRippleWrapper'
+import MRipple from './MRippleX'
 import Expand from './Expand'
 import Bound from './Bound'
 

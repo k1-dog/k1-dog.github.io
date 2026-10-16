@@ -1,15 +1,18 @@
 $miku-modal-preCls : "#{$m9-preCls}-modal";
 
 .#{$miku-modal-preCls} {
-  color: m9Themed('m9-element-fontClr');
-  border-radius: 8px;
+  // AC dual-mode cloud palette: light = cream day / dark = AC night
+  color: m9Themed('m9-modal-fontClr');
 
-  // ? 这里用 absolute 绝对定位 - 弹框整体宽度就是 由内容撑开的; relative 相对定位 - 整体宽度就是默认DOM文档流(浏览器)的宽度, 和 'div' 一样的效果
-  // ? relative:相对定位,相对自身原来位置,原有空间保留,不会被挤占。宽度为父元素宽度,且宽度会撑大/缩小父元素宽度
-  // ? absolute:绝对定位,相对最近父元素,原有空间不保留会被其他元素挤占。宽度为文本宽度,且宽度不会影响父元素宽度
   position: absolute; // 这里不要用 fixed 固定定位 - 否则 modal 上边包裹的 M9Drgger 拖拽元素无法被 modal-drawer 元素自动撑开宽高
 
-  background: m9Themed('m9-element-bgClr');
+  // * 异形轮廓变体 - 矩形圆角/边框/阴影全部移除, 轮廓视觉由内部 OutlineX canvas(tsukiyo Curve) 绘制承担
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  // 背景全透 - 云朵异形轮廓(tsukiyo)是弹框唯一视觉边界, 填充色由 canvas bg 链式填充绘制
+  background: transparent;
+
   // ! drawer - 抽屉类型 单独设置样式
   &.is-drawer {
     .#{$miku-modal-preCls}__header {
@@ -45,15 +48,18 @@ $miku-modal-preCls : "#{$m9-preCls}-modal";
     display: flex;
     align-items: center;
     justify-content: space-around;
-    border-bottom: 2px solid m9Themed('m9-inner-element-borderSideClr');
-    box-shadow: 0 1px 3px #7b7b7b;
-    padding: 0.5rem;
+    // 分隔线保留 - 颜色与云朵描边同源(双模式协调)
+    border-bottom: 2px solid m9Themed('m9-modal-borderClr');
+    // container is already inset by --m9-outline-pad (see OutlineX), lighter padding
+    padding: 0.75rem 1rem;
     user-select: none;
     &-title {
       flex-grow: 1;
       text-align: left;
       font-size: 1.5rem;
       font-weight: 700;
+      // 标题色与描边同源的深色系(双模式协调)
+      color: m9Themed('m9-modal-titleClr');
     }
     &-rightbar {
       display: flex;
@@ -64,17 +70,19 @@ $miku-modal-preCls : "#{$m9-preCls}-modal";
   }
 
   &__body {
-    padding: 0.5rem;
-    min-height: 200px;
-    min-width: 300px;
+    max-height: 400px;
+    max-width: 600px;
   }
 
   &__footer {
-    position: absolute;
-    bottom: 0;
-    padding: 8px;
-    border-top: 2px solid #bfa9cb;
+    // 文档流布局 - 与 body 自然间距, 不再压在宿主底边
+    position: static;
+    // container is already inset by --m9-outline-pad (see OutlineX)
+    padding: 0.5rem 1rem 0.75rem;
+    // 分隔线保留 - 颜色与云朵描边同源(双模式协调)
+    border-top: 2px solid m9Themed('m9-modal-borderClr');
     width: 100%;
+    box-sizing: border-box;
     display: flex;
     justify-content: flex-end;
   }

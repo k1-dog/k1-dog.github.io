@@ -26,10 +26,34 @@ $popper-arrow: ();
   }
 }
 
+// Flying state: the singleton pop is flying from the old refer
+// to the new refer along a bezier arc - ignore pointer events during flight
+.#{$miku-pop-preCls}--flying {
+  pointer-events: none;
+}
+
+// Wiggle fallback keyframes: quick left-right shake twice on landing
+@keyframes miku-pop-wiggle {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+.#{$miku-pop-preCls}--wiggle {
+  animation: miku-pop-wiggle 0.26s ease-out;
+}
+
 .#{$miku-pop-preCls} {
   $pop3rReferMargin: 0.8rem;
   $pop3rArrowSize: 0.5rem;
   position: absolute;
+  // Stack above normal content (the HangRoot container used to carry the
+  // z-index; the dispatcher body's poper root is style-neutralized, so
+  // the pop itself must own its stacking level now).
+  z-index: 999;
   &__inner {
     width: max-content;
     @include factory-popper();

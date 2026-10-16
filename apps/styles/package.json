@@ -18,7 +18,6 @@
   "dependencies": {
     "@k1/ui-lib": "workspace:^",
     "@k1/utils": "workspace:^",
-    "@k1/v0": "workspace:^",
     "sass": "^1.54.3"
   }
 }

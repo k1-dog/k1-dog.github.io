@@ -2,7 +2,7 @@
  * interact — 交互系统：hover 高亮 + click 聚焦（Schedulable）。
  * 时序：事件（tick 外）feed → Intake 暂存 → tick 内 drain。
  * 视线交互：wheel → zoomBy(ΣΔ)；drag 差分 → orbitBy(Σdx,Σdy)；2D/3D 差异全在相机双实现，interact 零分支。
- * 命中委托 spatial.onHitTest 单出口；动画委托 model 出口（setClickSlots anim=0 重生长）。
+ * 命中委托 spatial.hitTest 统一分发（hit2D 点流 / hit3D 射线流）；动画委托 model 出口（setClickSlots anim=0 重生长）。
  */
 import type { Schedulable, Vec2 } from '../yomi'
 import type { TsuModel } from '../m/model'
@@ -156,7 +156,7 @@ export class Interact implements Schedulable {
     }
 
     // 命中检测 — spatial 单出口（null=无法检测；[]=无命中）
-    const hits = this.spatial.onHitTest(this.model, msg.pos[0], msg.pos[1])
+    const hits = this.spatial.hitTest(this.model, msg.pos[0], msg.pos[1])
     if (hits === null) return
 
     if (msg.type === 'move') {

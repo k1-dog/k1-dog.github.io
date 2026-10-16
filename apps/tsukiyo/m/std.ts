@@ -7,13 +7,15 @@
 import type { Element, DimConf } from '../yomi'
 
 export function std ($raw: any[], $dim?: DimConf): Element[] {
-  // 无 dim → 按索引展开
+  // 无 dim → 按索引展开；原字段全透传（kind/x/y/r 等自定义字段保留，
+  // 自定义 locator/pointFn 才能读到 —— scene 层（如 storm anchor）依赖此）
   if (!$dim) {
-    return $raw.map(($val, $i) => ({
+    return $raw.map(($row, $i) => ({
+      ...$row,
       dimX: 'index',
       dimY: 'value',
       index: $i,
-      value: $val,
+      value: $row,
     }))
   }
 

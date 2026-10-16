@@ -32,6 +32,16 @@ $m9-inner-element-active-bgClr: var(--inner-element-active-bgClr);
 $m9-inner-element-disabled-bgClr: var(--inner-element-disabled-bgClr);
 $m9-inner-element-disabled-borderSideClr: var(--inner-element-disabled-borderSideClr);
 
+/*
+ * Modal 异形云朵轮廓配色（动森 Q 版双色）
+ * light: 奶油黄日间（奶黄底 + 深棕描边）
+ * dark: 动森夜晚（深青蓝底 + 薄荷奶绿描边）
+ */
+$m9-modal-bgClr: var(--modal-bgClr);
+$m9-modal-borderClr: var(--modal-borderClr);
+$m9-modal-titleClr: var(--modal-titleClr);
+$m9-modal-fontClr: var(--modal-fontClr);
+
 $m9-switcher-fontClr: #000000;
 $m9-switcher-bgClr: #ababab;
 $m9-switcher-borderClr: #585158;
@@ -90,6 +100,10 @@ $theme-config: (
   m9-inner-element-active-bgClr: $m9-inner-element-active-bgClr,
   m9-inner-element-disabled-bgClr: $m9-inner-element-disabled-bgClr,
   m9-inner-element-disabled-borderSideClr: $m9-inner-element-disabled-borderSideClr,
+  m9-modal-bgClr: $m9-modal-bgClr,
+  m9-modal-borderClr: $m9-modal-borderClr,
+  m9-modal-titleClr: $m9-modal-titleClr,
+  m9-modal-fontClr: $m9-modal-fontClr,
   m9-switcher-fontClr: $m9-switcher-fontClr,
   m9-switcher-bgClr: $m9-switcher-bgClr,
   m9-switcher-borderClr: $m9-switcher-borderClr,
@@ -188,6 +202,12 @@ body {
   --inner-element-disabled-bgClr: #56565f;
   --inner-element-disabled-borderSideClr: #b8b08f;
 
+  // modal cloud outline — AC dark-night: deep teal bg + mint stroke
+  --modal-bgClr: #3d5a66;
+  --modal-borderClr: #a8e6cf;
+  --modal-titleClr: #fff3c4;
+  --modal-fontClr: #d4f0e6;
+
   --button-main-fontClr: #cdbaeb;
   --button-main-bgClr: #5e5266;
   --button-main-outlineClr: #cc83ff;
@@ -231,6 +251,12 @@ body {
   
   --inner-element-disabled-bgClr: #c3d6ff;
   --inner-element-disabled-borderSideClr: #93a6ff;
+
+  // modal cloud outline — AC light-day: cream yellow bg + deep brown stroke
+  --modal-bgClr: #f7f3d0;
+  --modal-borderClr: #7a583c;
+  --modal-titleClr: #5a4230;
+  --modal-fontClr: #8b7355;
 
   --button-main-fontClr: #9d2dff;
   --button-main-bgClr: #eadaff;

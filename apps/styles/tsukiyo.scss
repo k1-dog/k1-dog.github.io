@@ -17,11 +17,11 @@
   box-sizing: border-box;
   overflow: hidden;
 
-  &__grid {
-    position: absolute;
-    width: 100%;
-    height: 100%;
+  // layer canvases (default grid background + consumer layers) are
+  // positioned/sized entirely from JS (layering.makeLayerCanvas: absolute,
+  // left/top aligned to the MAIN canvas origin, explicit width/height) —
+  // no CSS box rules here to avoid fighting the JS layout owner
+  &__layer {
     pointer-events: none;
-    z-index: 0;
   }
 }

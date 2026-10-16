@@ -86,13 +86,51 @@ export type ViewAffine = Float32Array
  * 六元仿射（2D gazeM）无条件合成，16 元剪裁矩阵（3D）无 2D ctx 语义跳过。
  * SoA x/y 统一 CSS 坐标系（与 e.offsetX/offsetY 一致）。
  */
-export function Hcvs_retina($canvas: HTMLCanvasElement, $dpr?: number, $view?: ViewAffine | null): RetinaResult {
+export function Hcvs_retina(
+  $canvas: HTMLCanvasElement,
+  $dpr?: number,
+  $view?: ViewAffine | null,
+  $cssSize?: [number, number],
+): RetinaResult {
   const dpr = $dpr ?? Hcvs_getDpr()
 
-  const rect = $canvas.getBoundingClientRect()
-  const cssW = Math.floor(rect.width || $canvas.width)
-  const cssH = Math.floor(rect.height || $canvas.height)
+  // explicit caller size — the caller owns the DOM truth (e.g. the layer
+  // resize path writes style.width/height in the SAME synchronous frame,
+  // so offsetWidth has NOT flushed to the new value yet and the guard
+  // below would wrongly wipe the explicit style). Use it as the CSS basis
+  // and skip both the guard and the offsetWidth self-read.
+  if ($cssSize) {
+    const [w, h] = $cssSize
+    return retinaApply($canvas, dpr, $view, Math.floor(w), Math.floor(h))
+  }
 
+  // un-laid-out guard — offsetWidth 0 (display:none era) must NOT fall
+  // back to the 300x150 canvas default: writing that into style.width
+  // would OVERRIDE a consumer CSS inset stretch and lock the canvas at
+  // 300x150 forever. Clear any previously poisoned explicit size and
+  // skip; the next laid-out call heals the canvas via CSS
+  if ($canvas.offsetWidth <= 0 || $canvas.offsetHeight <= 0) {
+    if ($canvas.style.width || $canvas.style.height) {
+      $canvas.style.width = ''
+      $canvas.style.height = ''
+    }
+    return { dpr, cssWidth: 0, cssHeight: 0, deviceWidth: 0, deviceHeight: 0, changed: false }
+  }
+
+  // layout size (offsetWidth/offsetHeight) — immune to CSS transform scaling,
+  // unlike getBoundingClientRect (a mid-animation scale would poison the
+  // device size and then lock it into style, forever wrong)
+  return retinaApply($canvas, dpr, $view, Math.floor($canvas.offsetWidth), Math.floor($canvas.offsetHeight))
+}
+
+/** shared tail of Hcvs_retina — device-size sync + base x view transform */
+function retinaApply(
+  $canvas: HTMLCanvasElement,
+  dpr: number,
+  $view: ViewAffine | null | undefined,
+  cssW: number,
+  cssH: number,
+): RetinaResult {
   const devW = Math.floor(cssW * dpr)
   const devH = Math.floor(cssH * dpr)
 

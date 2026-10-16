@@ -1,6 +1,7 @@
 import { preCls, uploaderCls } from './index'
 import Imager from './Imager.js'
 import M9Icon from '@k1/styles/assets/_.js'
+import M9Popover from '../Popover/Popover'
 import xhrUploadJS from './xhr-upload.js'
 import { H_getBase64, H_formatFileSize } from '@k1/utils'
 import { M9WebAdaptor } from '../Grid/Grid.js'
@@ -68,9 +69,23 @@ const UploadList = ($props: UploadListProps) => {
               />
               <div className='float-with-img'>
                 <div className='desc-wrap'>
-                  <span className='file-name'>{$file.name}</span>
-                  <br />
-                  <span className='file-size'>{H_formatFileSize($file.size)}</span>
+                  {/* 归位：单例气泡被拉回 .desc-wrap 内渲染 */}
+                  <M9Popover
+                    parentNodeSetter={
+                      ($el: Node | null) => ($el as HTMLElement | null)?.closest('.desc-wrap') ?? document.body
+                    }
+                  >
+                    {
+                      {
+                        default: <span className='file-name'>{$file.name}</span>,
+                        content: <>
+                          <span className='file-name'>{$file.name}</span>
+                          <br />
+                          <span className='file-size'>{H_formatFileSize($file.size)}</span>
+                        </>
+                      }
+                    }
+                  </M9Popover>
                   <div style={{ display: 'flex' }}>
                     <span className='file-percentage'>{$file.percentage + '%'}</span>
                     <span className={getStatusCls($file.status)}></span>

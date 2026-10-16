@@ -17,6 +17,7 @@
   "dependencies": {
     "classnames": "^2.3.1",
     "@k1/styles": "workspace:^0.0.1",
+    "@k1/tsukiyo": "workspace:^0.0.1",
     "@k1/utils": "workspace:^0.0.1"
   }
 }

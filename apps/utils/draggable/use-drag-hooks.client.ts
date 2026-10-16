@@ -37,7 +37,7 @@ function _isEdge ($targetElementRect, $dragOffset, direction: 'left' | 'right' |
       _offsetX += 40
       if (direction === 'left') _nextLeft -= 40
     }
-    return { _nextWidth, nextHeight: childHeight,  _nextLeft, nextTop: lastTop, _offsetX, offsetY: 0 }
+    return { nextWidth: _nextWidth, nextHeight: childHeight, nextLeft: _nextLeft, nextTop: lastTop, _offsetX, offsetY: 0 }
   } else if (direction === 'top' || direction === 'bottom') {
     let _offsetY = $dragOffset._y
     let _nextHeight = childHeight
@@ -54,10 +54,10 @@ function _isEdge ($targetElementRect, $dragOffset, direction: 'left' | 'right' |
       _offsetY += 40
       if (direction === 'top') _nextTop -= 40
     }
-    return { nextWidth: childWidth, _nextHeight, nextLeft: lastLeft, _nextTop, _offsetY, offsetX: 0 }
+    return { nextWidth: childWidth, nextHeight: _nextHeight, nextLeft: lastLeft, nextTop: _nextTop, _offsetY, offsetX: 0 }
   }
 
-  return { nextWidth: childWidth, nextHeight: childHeight,  nextLeft: lastLeft, nextTop: lastTop, offsetY: 0, offsetX: 0 }
+  return { nextWidth: childWidth, nextHeight: childHeight, nextLeft: lastLeft, nextTop: lastTop, offsetY: 0, offsetX: 0 }
 }
 
 function useLeftDragHook ($childRef, $props, $ctx) {

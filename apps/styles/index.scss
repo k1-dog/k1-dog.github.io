@@ -176,8 +176,20 @@
   }
 }
 
-@mixin m9-text-overflow () {
-  text-wrap: nowrap;
+// 文本溢出样式 -
+// ·类型1 only-text 单纯控制单行文本字符数溢出 [不允许换行]
+// ·类型2 only-lines 控制文本行数溢出 [允许换行]
+@mixin m9-text-overflow ($type: 'only-text', $lines: 2) {
+  $textWrap: nowrap;
+  @if $type == 'only-text' {
+    $textWrap: nowrap;
+  } @else if $type == 'only-lines' {
+    $textWrap: wrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+  }
+  text-wrap: $textWrap;
   text-overflow: ellipsis;
   overflow: hidden;
 }

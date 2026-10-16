@@ -26,7 +26,7 @@ apps/tsukiyo/
 ├── v/                # ③ View 视图层 — 图形绘制与交互联动
 │   ├── shape.ts      # Shapes 原语工厂 + pointTask（SoA 图形槽唯一写入者）
 │   ├── coord.ts      # coordTask 定位 + resolveCoordLocator 规则解析（含投影挂 ctx）
-│   ├── paths.ts      # pathsTask 非位置几何 + PathsHook
+│   ├── paths.ts      # pathsTask 非位置几何 + SealFn 跨图形封闭回调（Line/Curve Δ 连接唯一事实源）
 │   ├── layering.ts   # 高级视觉布局 — 视觉基准/脏区收集/剔除/anim 推进委托
 │   ├── camera3.ts    # 取景相机 — CoordMapper 双实现 + 3D 相机数学
 │   ├── render.ts     # Canvas2D 渲染器 + createRenderer（2D/3D 工厂）
@@ -67,8 +67,8 @@ apps/tsukiyo/
 | ① input | engine.ts | reset('input') 重投（done 后不重跑） | pending（raw/dim/resized） | 零 SoA 写；locator / gridDirty 信号 | std 标准化 → loadElements 暂存 → locator 重解析 → gridDirty 置位 |
 | ② point | v/shape.ts | after ① · dataDirty 守卫 | elements + pointFn | type / fill / aux / src（图形槽唯一写入者） | 元素 → ShapeDesc → 连续写入 SoA；pointFn 可依赖元素数据，数据变化必须重定型 |
 | ③ coord | v/coord.ts | after ② · dataDirty 守卫 | locator + 视口尺寸 | x / y（定位）+ CoordCtx（值域上下文） | 坐标定位 + 值域归一，产出 ④ 与网格共享的上下文 |
-| ④ paths | v/paths.ts | after ③ · dataDirty 守卫 | locator + CoordCtx | w / h + aux（非位置几何） | 图形封闭（h/角度/Δ/偏移）+ pathsHook 用户边界；dataDirty 用后清除 |
-| ⑤ layering | v/layering.ts | after ④ · 常驻 | gridDirty + drainDirty + 视口 | region / regionBigDrawing + spatial 更新（anim 推进委托 model.stepAnim） | 微流水：网格重绘 → 脏消费+AABB 扩张+spatial 更新 → region 合并 → inView 剔除 → anim 推进（model 出口） |
+| ④ paths | v/paths.ts | after ③ · dataDirty 守卫 | locator + CoordCtx | w / h + aux（非位置几何） | 图形封闭（h/角度/Δ/偏移）：Line/Curve Δ 问询 seal 回调（SealConf 唯一事实源，缺省 defaultSeal `{Δi: i+1}`）；dataDirty 用后清除 |
+| ⑤ layering | v/layering.ts | after ④ · 常驻 | drainDirty + 视口 | region / regionBigDrawing + spatial 更新（anim 推进委托 model.stepAnim） | 微流水：**layers 分层**（layers(fn) 回调返回 layoutRule {layers}，每层=完整子引擎**共享主 Scheduler**（单 rAF 单时钟同 tick，EngineOpts scheduler/taskPrefix/interact 注入；子层 task 前缀 layer{z}: 隔离，detach() 卸载）+ canvas 层按数字 z 排序：z<0 主 canvas 下/z>0 上；未传=默认 grid 网格背景层，族分派查 GRID_RENDERERS 注册表（cartesian/polar/radar），读 locator.grid）+ 代数守卫（layerGen 悬挂防护）+ 惰性建层 → 视口变化子层 resize → 脏消费+AABB 扩张+spatial 更新 → region 合并 → inView 剔除 → anim 推进（model 出口） |
 | ⑥ draw | v/render.ts · render-3d.ts | after ⑤ · draw 相 | region + inView + 相机矩阵/视线 | 零 SoA 写（纯读取） | Canvas2D 分桶批绘制 / WebGPU storage buffer 实例打包 → flush 上屏 |
 
 **关键不变量**：
@@ -86,9 +86,9 @@ apps/tsukiyo/
 | input | reset 重投 | std 标准化 + loadElements + locator 重解析 |
 | point | after input | pointTask 写 SoA（x/y/type/fill/aux...唯一写入者） |
 | coord | after point，dataDirty 守卫 | coordTask 写 x/y 定位 + 产出 CoordCtx |
-| paths | after coord | pathsTask 写非位置几何（h/角度）+ pathsHook |
+| paths | after coord | pathsTask 写非位置几何（h/角度）+ Line/Curve Δ 问询 seal 回调（缺省 defaultSeal） |
 | interact | 常驻 after coord | hover/click 命中（一帧滞后用 spatial） |
-| layering | 常驻 after paths | gridDirty 网格 + drainDirty + inView + anim 推进 |
+| layering | 常驻 after paths | layers 分层（layers(fn)→layoutRule{layers}；默认 grid 层 z:-1）+ drainDirty + inView + anim 推进 |
 | draw | 常驻 after layering（draw 相） | renderer.flush(region, inView) |
 
 ## 2. SoA 数据模型（m/model.ts）
@@ -102,7 +102,7 @@ apps/tsukiyo/
 | type | Prim 原语类型 | point task |
 | fill | RGBA 打包 uint32 | point task（唯一） |
 | aux | 几何参数（GEO_SLOTS_EACH_ELEM=3 槽/元素） | point/paths task |
-| anim | 生长进度 0→1 | model 出口（stepAnim 推进 / setClickSlots 重置 — 唯一写入出口收口 model） |
+| anim | 生长进度 0→1（snap 模式定型即 1 — 逐帧数据重投场景跳过生长） | model 出口（stepAnim 推进 / setClickSlots 重置 — 唯一写入出口收口 model；snap 模式 point 定型写 1） |
 | dirty | 脏位图（**单真相结构** — 无第二结构需同步） | markDirty 幂等置位 / drainDirty 扫描清零 |
 | src | 原始元素索引 | point task |
 | hoverSlots | hover 槽位集合（**派生态**，不写 SoA） | model 出口 setHoverSlots/clearHover（interact 唯一调用方） |
@@ -158,7 +158,7 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 
 ### 3.5 interact.ts — 鼠标事件联动
 
-事件接收派发器（零几何感知）：DOM 事件 → Intake → task drain；leave 清 hover/click（委托 model.clearHover/clearClick）；wheel/drag → spatial.zoomBy/orbitBy + markAllDirty；move/click → **`spatial.onHitTest(m, sx, sy)` 单出口委托**（null=无法检测保持现状态 / []=无命中照常清 hover）→ setHover/setClick（**委托 model 出口 setHoverSlots/setClickSlots** — anim/hover/click 写入单点收口）。tooltip 常量 TOOLTIP 配置（cssText/offset/valueDecimals）。
+事件接收派发器（零几何感知）：DOM 事件 → Intake → task drain；leave 清 hover/click（委托 model.clearHover/clearClick）；wheel/drag → spatial.zoomBy/orbitBy + markAllDirty；move/click → **`spatial.hitTest(m, sx, sy)` 统一分发**（null=无法检测保持现状态 / []=无命中照常清 hover）→ setHover/setClick（**委托 model 出口 setHoverSlots/setClickSlots** — anim/hover/click 写入单点收口）。tooltip 常量 TOOLTIP 配置（cssText/offset/valueDecimals）。
 
 ### 3.6 camera3.ts
 
@@ -166,7 +166,7 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 - `clipForTsukiyoWorld(cam)` — 视图×透视矩阵（三缓冲复用零分配）
 - `toWorldSpace(box, halfZ)` — 图表 AABB → 世界盒（Y 翻转 + ±挤出半厚；spatial 命中区谓词消费的唯一共享出口）
 - `sightRay` — 屏幕像素 → 世界系视线射线（模块私有；与透视矩阵严格互逆）
-- ray* 命中谓词族（rayBox/rayBar/rayWedge）已收敛至 spatial 命中区
+- ray3* 命中形体谓词（ray3Box/ray3Bar/ray3Wedge）已收敛至 spatial 命中区
 
 ## 4. 中间件层（middleware/）— 桥接 m↔v / 统领全局
 
@@ -178,8 +178,8 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 
 - **划分区**（cell=DEFAULT_CELL_SIZE 空间哈希）：insert 覆盖分桶 / remove 精确撤桶 / update 换桶 / queryPoint 粗筛 3×3 邻域（只存 slot 数字）
 - **聚合区**（取景相机）：camera（CoordMapper 策略构造注入，与渲染后端成对）；spatial.frame 每帧取景 → cameraMatrix/cameraSight/pickRay/worldToCoordXY 转发；命中射线与渲染矩阵同一次取景产出（三方同源）
-- **命中区**（碰撞检测单出口）：`onHitTest(m, sx, sy)` 唯一入口 — 射线就绪走 hitByRay（z 板夹取 → 划分区候选 → rayBody 逐槽位精测），否则 hitByPoint（worldToCoordXY → 候选 → AABB/Arc 角度/Triangle 重心内联精筛）；null=无法检测 / []=无命中语义区分；纯读零写
-- ray* 谓词族（模块级纯函数，凸域相交统一"t 区间收窄"）：rayBox（Rect 盒）/ rayBar（Line 条）/ rayWedge（Arc 楔，|sweep|≥π 退化整圆盘）/ rayBody（逐槽位分派，几何参数逐字镜像 render-3d packer）
+- **命中区**（碰撞检测统一分发）：`hitTest(m, sx, sy)` 单入口 — pickRay 就绪走 hit3D，否则 hit2D；两流同构三段式：① coarse 粗筛（queryPoint 邻域候选）② fine 精筛（fine2D 点级 / ray3Body 挤出体）③ rank 排序（rankHits 距离主键 + 面积次键）；hit2D 空手时邻近兜底（hit2Dist 最小候选 ≤ HIT_TOLERANCE 即命中）；null=无法检测 / []=无命中语义区分；纯读零写
+- 谓词两层（模块级纯函数）：cut* 收窄原语（cutAxis 轴区间 / cutPlane 半空间 / cutCircle 圆盘 — 射线 t 区间收窄）× ray3* 形体（ray3Box 盒 / ray3Bar 条 / ray3Wedge 楔 |sweep|≥π 退化整圆盘 / ray3Body 逐槽位分派，几何参数逐字镜像 render-3d packer）
 
 ### 4.3 engine.ts — 统领装配
 
@@ -187,7 +187,7 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 
 ### 4.4 index.ts — Tsukiyo 链式入口（统领）
 
-`new Tsukiyo(canvas).input().scale().coord().point().paths().draw(mode)` 链式组合；draw 内 createRenderer 与 Engine 成对装配（回退 2D 时相机同步降级恒等）。
+`new Tsukiyo(canvas).input().scale().coord().point().paths().anim().draw(mode)` 链式组合；draw 内 createRenderer 与 Engine 成对装配（回退 2D 时相机同步降级恒等）。`anim('snap')` 定格生长（逐帧数据重投场景）。
 
 ## 5. 常量速查（helper/const.ts）
 
@@ -270,6 +270,6 @@ task 五阶段：① 取景 spatial.frame（moved → gridDirty）+ 视觉基准
 | 动画速度 | helper/const.ts ANIM_STEP |
 | 3D 视角/光照 | helper/const.ts C3D + v/camera3.ts |
 | 脏区域/局部重绘 | middleware/dirty.ts + v/layering.ts task |
-| 命中测试 | middleware/spatial.ts 命中区（onHitTest 单出口；v/interact.ts 委托） |
+| 命中测试 | middleware/spatial.ts 命中区（hitTest 统一分发；v/interact.ts 委托） |
 | anim/hover/click 写入 | m/model.ts 出口（stepAnim/setHoverSlots/clearHover/setClickSlots/clearClick） |
 | 调度顺序 | middleware/engine.ts registerTasks |

@@ -1,49 +1,40 @@
 import MTrans from '../Transtions'
-import { __on, __off, MThrottle, HangRoot } from '@k1/utils'
+import { __on, __off, HangRoot } from '@k1/utils'
 import classNames from 'classnames'
-import { Ref, VNode, defineComponent, getCurrentInstance, h, nextTick, onBeforeMount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { Ref, defineComponent, getCurrentInstance, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { MPopoverProps } from './Type'
+import M9PopoverController from './controller'
+import type { MPopoverShowPayload } from './controller'
+import flyBezier from './flyBezier'
 
 const Bound = MTrans.Bound
 
-export interface MPopoverProps {
-  /**
-   * @description 气泡框 悬浮位置 [字符类型] <默认为上侧>
-   */
-  position?: string /** @see <|top<|-|>down<|-|>left<|-|>right<| */
+const GAP_SIZE = 5 // gap between the pop and its refer element
 
-  /**
-   * @description 气泡框 悬浮开启模式 [字符类型] <默认为点击开启-点击关闭>
-   */
-  popMode?: string /** @see <|MP0PClick<|-|>MP0PHover<| */
+/**
+ * @description Pure position calculator.
+ * Given the refer element rect and the pop rect (both in viewport
+ * coordinates), produce the viewport-coordinate left/top style for the
+ * requested floating position. Containing-block offset correction happens
+ * in the caller (setMP0P$Pos).
+ */
+function getPosStyle(
+  $referRect: DOMRect,
+  $popRect: DOMRect,
+  position = 'top'
+): { left: number; top: number } {
+  const absWidthDiff = Math.abs($referRect.width - $popRect.width)
+  const absHeightDiff = Math.abs($referRect.height - $popRect.height)
 
-  /**
-   *  @description 气泡框 指定 - <元素的父节点> [默认 document 文档]
-   */
-  parentNodeSetter?: (elementNode?: Node | null) => Element
+  const genPositionFactory: { [key: string]: () => { left: number; top: number } } = {
+    top: () => ({ left: $referRect.left - absWidthDiff / 2, top: $referRect.top - $popRect.height - GAP_SIZE }),
+    down: () => ({ left: $referRect.left - absWidthDiff / 2, top: $referRect.bottom + GAP_SIZE }),
+    left: () => ({ left: $referRect.left - $popRect.width - GAP_SIZE, top: $referRect.top - absHeightDiff / 2 }),
+    right: () => ({ left: $referRect.right + GAP_SIZE, top: $referRect.top - absHeightDiff / 2 })
+  }
 
-  /**
-   * @description 气泡框 外部容器控制开关 [布尔类型] <必选>
-   */
-  showPop: boolean /** @see <|true-|==|-false|> */
-
-  /**
-   * @description 气泡框 内部容器内容 [React元素] <必选>
-   */
-  content: VNode
-
-  /**
-   * @description 气泡消失时执行的回调
-   */
-  onUnP0P?: () => void
+  return genPositionFactory[position]()
 }
-
-interface MPopoverState {
-  M5howP0P: boolean
-
-  P0P5tyle: object
-}
-
-type Event4andlerFnType = (el: Element | Text | Document, ev: string, _handler: EventListenerOrEventListenerObject) => void
 
 export default defineComponent({
   name: 'M9Popover',
@@ -60,6 +51,24 @@ export default defineComponent({
       type: String,
       default: 'click'
     },
+    isPoperOne: {
+      type: Boolean,
+      default: true
+    },
+    // The refer (anchor) element injected by the singleton dispatcher into
+    // its poper (bubble body) instance - the only channel for a refer that
+    // lives outside this instance's own template (dispatcher body mode).
+    referEl: {
+      type: null,
+      default: null
+    },
+    // The pop content VNode injected by the singleton dispatcher into its
+    // poper (bubble body) instance (dispatcher body mode). Normal usages
+    // provide content through the #content slot instead.
+    content: {
+      type: null,
+      default: null
+    },
     onUnP0P: {
       type: Function,
       default: () => void 0
@@ -69,49 +78,87 @@ export default defineComponent({
       default: ($elementNode?: Node | null) => document // ! elementNode || document
     }
   },
-  setup (props, ctx) {
+  setup(props, ctx) {
     const vm = getCurrentInstance()
+
+    if (vm && !ctx.slots.default) {
+      M9PopoverController.attachVm(vm)
+    }
+
     const PopRef: Ref<any> = ref(null)
-    const R7arReference: Ref<any> = ref(null)
-    let _epop$Mode = "click"
-    let _4andlerBuffers: any = []
-    let _pop3rRenderFLAG = false // * 气泡框 P0P3r是否渲染标志 [React元素] <必选>
+    const R7arRefer: Ref<any> = ref(null)
+    let _4andlerBuffers: { el: Element | Text | Document; ev: string; handler: EventListenerOrEventListenerObject }[] = []
+    let _pop3rRenderFLAG = false // whether the pop element is rendered into the DOM tree
+    // The fromPop rect captured when replacing another managed pop;
+    // the actual fly starts later, once the final position is computed (setMP0P$Pos).
+    let _pendingFromPop: { left: number; top: number; width: number; height: number } | null = null
+
+    // The refer element this instance has registered in the controller's
+    // live registry. Vue nulls template refs while unmounting the subtree -
+    // BEFORE onUnmounted runs - so the unmount hook must rely on this
+    // tracked reference instead of re-reading the template ref.
+    let _registeredRefer: Element | null = null
 
     const state: { M5howP0P: boolean; P0P5tyle: { left: number; top: number } } = reactive({
       M5howP0P: false,
       P0P5tyle: { left: 0, top: 0 }
     })
 
-    // !判断气泡框的显隐-是否受控
-    function _U$isControlled() {
-      const is = !!props.showPop
-
-      return is
-    }
-    // 获取气泡框.--.气泡El
+    // Get the pop element
     function _Get$Poper() {
       return PopRef.value?.$el || PopRef.value
     }
-    // 获取气泡框.--.指引者<先驱>El
+    // Get the refer (anchor) element
     function _Get$Refer() {
-      return R7arReference.value?.$el || R7arReference.value
+      // Dispatcher body mode: the refer element is injected as a prop by
+      // the singleton dispatcher (it has no refer child of its own).
+      if (props.referEl) return props.referEl
+      return R7arRefer.value?.$el || R7arRefer.value
     }
-    // 获取气泡框.--.气泡框元素本身El
+    // Get this component's own element
     function _Get$t4isEl() {
-      return  vm?.vnode.el // ReactDOM.findDOMNode(this)
+      return vm?.vnode.el
     }
-    // 获取当前组件元素.--.父元素El
+    // Get the parent element of this component
     function _Get$ParentEl() {
-      const $el = _Get$t4isEl()
-      const firstParent = $el?.parentNode
+      const firstParent = _Get$Refer()?.parentNode
       const { parentNodeSetter } = props
       return (parentNodeSetter && parentNodeSetter(firstParent))
     }
-    // * 判断当前鼠标点击区域-是否为气泡框内部有效区域
+
+    // Template ref sink for the refer child: keeps R7arRefer fresh and
+    // keeps the controller's live-refer registry in sync. The controller
+    // destroys the single poper once the last live refer unregisters.
+    function setReferRef($_r_: any) {
+      R7arRefer.value = $_r_
+
+      if (!props.isPoperOne || !$_r_) return
+
+      const nextRefer = $_r_.$el || $_r_
+      if (_registeredRefer === nextRefer) return
+
+      // Register the fresh refer BEFORE unregistering its predecessor, so
+      // the registry never empties mid-swap (an empty registry would tear
+      // the single poper down while it is still in use).
+      M9PopoverController.attachRefer(nextRefer)
+      if (_registeredRefer) {
+        M9PopoverController.detachRefer(_registeredRefer)
+      }
+      _registeredRefer = nextRefer
+    }
+
+    // Whether the pop visibility is externally controlled by the showPop prop
+    function _U$isControlled() {
+      return !!props.showPop
+    }
+
+    // * Check whether the click event happened inside the valid pop area
     function isValidArea($e: Event) {
       const refer = _Get$Refer()
       const poper = _Get$Poper()
-      const t4isEL = _Get$t4isEl()
+      // The dispatcher body instance sits inside its detached root div -
+      // t4isEL.contains is meaningless there, only refer/poper matter.
+      const t4isEL = props.referEl ? null : _Get$t4isEl()
       const target = $e.target as Node
       const is =
         !t4isEL ||
@@ -119,175 +166,219 @@ export default defineComponent({
         !refer ||
         refer.contains(target) ||
         !poper ||
-        poper.contains(poper)
+        poper.contains(target)
 
       return is
     }
-    // 设置气泡框弹出时, 在文档界面中的上左位置偏移量
+
+    // Set the absolute left/top offset of the pop on the document
     function setMP0P$Pos() {
-      // ! (pop3r! /** @see this, */ /** @see this.refs.popper*/)
+      const poper = _Get$Poper() as HTMLElement
+      if (!poper || !_Get$Refer()) return
+
+      const isSwitchingRefer = !!props.referEl && state.M5howP0P && !!state.P0P5tyle.left && !!state.P0P5tyle.top
+
       const Refer$Rect = _Get$Refer()!.getBoundingClientRect()
-      const P0P3r$Rect = _Get$Poper()!.getBoundingClientRect()
-      const offsetY = window.scrollY
+      const P0P3r$Rect = poper.getBoundingClientRect()
+      const rawStyle = getPosStyle(Refer$Rect, P0P3r$Rect, props.position)
 
-      const pop$style = { left: 0, top: 0 }
+      const container = poper.offsetParent as HTMLElement | null
+      const containerRect = container ? container.getBoundingClientRect() : null
+      state.P0P5tyle = containerRect
+        ? { left: rawStyle.left - containerRect.left, top: rawStyle.top - containerRect.top }
+        : rawStyle
 
-      const gapSize = 5 // ? 气泡与指引元素间的缝隙距离
-      const absWidthDiff = Math.abs(Refer$Rect.width - P0P3r$Rect.width)
-      const absHeightDiff = Math.abs(Refer$Rect.height - P0P3r$Rect.height)
+      // Flight start point: the OLD pop rect recorded by the dispatcher
+      // (must be read BEFORE keepLastPopRect overwrites it below
+      const fromPop = isSwitchingRefer
+        ? M9PopoverController.getFromPop()
+        : {
+          left: P0P3r$Rect.left,
+          top: P0P3r$Rect.top,
+          width: P0P3r$Rect.width,
+          height: P0P3r$Rect.height
+        }
 
-      const gen_position_factory: { [key: string]: Function } = {
-        top: () => {
-          return { left: Refer$Rect.left - absWidthDiff / 2, top: offsetY + Refer$Rect.top - P0P3r$Rect.height - gapSize }
-        },
-        down: () => {
-          return { left: Refer$Rect.left - absWidthDiff / 2, top: offsetY + Refer$Rect.bottom + gapSize }
-        },
-        left: () => {
-          return { left: Refer$Rect.left - P0P3r$Rect.width - gapSize, top: offsetY + Refer$Rect.top - absHeightDiff / 2 }
-        },
-        right: () => {
-          return { left: Refer$Rect.right + gapSize, top: offsetY + Refer$Rect.top - absHeightDiff / 2 }
+      // Report the settled pop rect to the singleton dispatcher,
+      // so the next managed pop can fly from this real position (fromPop).
+      if (props.isPoperOne) {
+        M9PopoverController.keepLastPopRect(P0P3r$Rect)
+      }
+
+      if (isSwitchingRefer) {
+        nextTick(() => {
+          if (poper.isConnected) {
+            flyBezier(poper, fromPop, poper.getBoundingClientRect())
+          }
+        })
+        return
+      }
+
+      // the fly one more tick to read the settled final rect of the poper.
+      if (_pendingFromPop && props.isPoperOne) {
+        if (poper) {
+          const fromPop = _pendingFromPop
+          _pendingFromPop = null
+          nextTick(() => {
+            if (poper.isConnected) {
+              flyBezier(poper, fromPop, poper.getBoundingClientRect())
+            }
+          })
+        } else {
+          _pendingFromPop = null
         }
       }
-      const Make$Po5 = gen_position_factory[props.position || 'top']()
+    }
 
-      pop$style.left = Make$Po5.left
-      pop$style.top = Make$Po5.top
-
-      state.P0P5tyle = pop$style
-    }
-    // 节流 - 滚动事件发生时执行一些回调
-    function ThrottleScroll2SetPos($_call_: Function, $_delay_: number): EventListenerOrEventListenerObject {
-      return MThrottle($_call_, $_delay_)
-    }
-    // 在先驱者元素上 - 添加事件句柄 -> 为了在没有渲染出 poper 气泡框的时候, 组件内部由先驱者引出
-    function handleEventHooksOnReferer() {
-      const refererElement = _Get$Refer()!
-      if (_epop$Mode === 'click') {
-        // 点击指引者元素__~~'not'__开关取反
-        EvCollecter(refererElement, 'click', $blur$moving_2_O9en) // this.Reverse$P0P5how
-      } else {
-        // 移向指引者->启动开关<-
-        EvCollecter(refererElement, 'mouseenter', $blur$moving_2_O9en)
-        // 移出指引者->禁闭开关<-
-        EvCollecter(refererElement, 'mouseleave', $blur$moving_2_C1ose)
-      }
-    }
-    // ! 副作用 - 当气泡被渲染出来时, 此时一定是先驱者与气泡同时存在 | 我们要监听点击当前容器_[包含::气泡 + 先驱_]之外的区域后, 要关闭气泡
-    function _E$effectNotAreaEvent() {
-      const parentNode = _Get$ParentEl()
-      EvCollecter(parentNode, 'click', $4OT3lAreaWrapper)
-    }
-    // ! 销毁副作用 - 移除外部区域监听器
-    function _ReE$effectNotAreaEvent() {
-      const parentNode = _Get$ParentEl()
-      _4andlerBuffers.forEach(($_4andler) => {
-        $_4andler.el === parentNode && __off($_4andler.el, $_4andler.ev, $_4andler.handler)
-      })
-
-      _4andlerBuffers = _4andlerBuffers.filter(($_4andler) => $_4andler.el !== parentNode)
-    }
-    // 元素的事件绑定器
+    // Element event binder - records every binding for unified teardown
     function EvCollecter($el: Element | Text | Document, $ev: string, $_handler: EventListenerOrEventListenerObject) {
       __on($el, $ev, $_handler)
+      _4andlerBuffers.push({ el: $el, ev: $ev, handler: $_handler })
+    }
+    // Element event dropper - remove bindings on the given element, or all when omitted
+    function EvDropper($el?: Element | Text | Document) {
+      _4andlerBuffers.forEach(($_4andler) => {
+        if (!$el || $_4andler.el === $el) {
+          __off($_4andler.el, $_4andler.ev, $_4andler.handler)
+        }
+      })
+      _4andlerBuffers = _4andlerBuffers.filter(($_4andler) => $el && $_4andler.el !== $el)
+    }
 
-      const E1istener0bj = {
-        $el,
-        $ev,
-        handler: $_handler
-      }
-      _4andlerBuffers.push(E1istener0bj)
-    }
-    // 当点击有效区域以外的地方后, 进行气泡框关闭操作
-    function $4OT3lAreaWrapper($parentNodeEvent: Event) {
-      const pop3r = _Get$Poper()!
-      const ref3r = _Get$Refer()!
-      $4OT3lArea([pop3r as Element, ref3r as Element], $parentNodeEvent, $blur$moving_2_C1ose)
-    }
-    /**
-     * @decription |> 点击无效区域后 ~~ 关闭并销毁气泡 <|
-     * @function $4OT3lArea
-     * @param {Element} _0ri$el @param {Event} _7ar$ev <|-|> @param {Function} _0nCall_
-     */
-    function $4OT3lArea($_0ri$el: Element | Element[], $_7ar$ev: Event, $_0nCall_: Function) {
-      if (Array.isArray($_0ri$el)) {
-        if ($_0ri$el.every(($el) => !$el.contains($_7ar$ev.target as Node))) {
-          $_0nCall_ && $_0nCall_()
+    // Bind the open/close triggers on the refer element
+    function handleEventHooksOnReferer() {
+      const refererElement = _Get$Refer()!
+
+      // Managed (isPoperOne) usage: interactions are reported to the
+      // singleton dispatcher, which re-points its poper instance here.
+      // Dispatcher body mode: triggers are driven by the dispatcher directly - skip.
+      if (props.isPoperOne && !props.referEl) {
+        const showPayload = () => {
+          const refer = _Get$Refer()
+          if (!refer) return
+          M9PopoverController.show(refer, {
+            content: ctx.slots.content ? ctx.slots.content()[0] : null,
+            position: props.position,
+            popMode: props.popMode,
+            parentNodeSetter: props.parentNodeSetter as MPopoverShowPayload['parentNodeSetter']
+          })
         }
+        if (props.popMode === 'hover') {
+          EvCollecter(refererElement, 'mouseenter', showPayload)
+          EvCollecter(refererElement, 'mouseleave', M9PopoverController.hide)
+        } else {
+          EvCollecter(refererElement, 'click', showPayload)
+        }
+        return
+      }
+
+      if (props.popMode === 'click') {
+        // click the refer element -> toggle the pop
+        EvCollecter(refererElement, 'click', () => { state.M5howP0P = !state.M5howP0P })
       } else {
-        if (!$_0ri$el.contains($_7ar$ev.target as Node)) {
-          // 若当前0ri$el中没有7ar$el区域,则当前事件发生在预期0ri$el区域之外|>触发__callFn__
-          $_0nCall_ && $_0nCall_()
-        }
+        // hover the refer element -> open / leave -> close
+        EvCollecter(refererElement, 'mouseenter', onEnterArea)
+        EvCollecter(refererElement, 'mouseleave', onLeaveArea)
       }
     }
-    // 指引者元素 点击事件 -> 开关不断取反
-    function Reverse$P0P5how() {
-      state.M5howP0P = !state.M5howP0P
-    }
-    // 鼠标移入模式开启时, 移入到指引者上方时, 开启气泡者
-    function $blur$moving_2_O9en($e) {
+
+    // When the mouse enters the zone, open the pop
+    function onEnterArea() {
       state.M5howP0P = true
     }
-    // 鼠标移入模式开启时, 从指引者上方移出时, 关闭气泡者
-    function $blur$moving_2_C1ose() {
+    // When the mouse leaves the zone, close the pop
+    function onLeaveArea() {
       state.M5howP0P = false
       nextTick(() => {
         const { onUnP0P } = props
         onUnP0P && onUnP0P()
       })
     }
-    // 气泡者组件销毁时, 自动移除与之相关联的事件绑定
-    function _destoryEvInUnmountFade() {
-      const poper = _Get$Poper()!
-      _4andlerBuffers.forEach(($_4andler) => {
-        ($_4andler.el === poper) && __off($_4andler.el, $_4andler.ev, $_4andler.handler)
-      })
 
-      _4andlerBuffers = _4andlerBuffers.filter(($_4andler) => $_4andler.el !== poper)
-    }
-    function _killEvListeners () {
-      for (let _i in _4andlerBuffers) {
-        const handler = _4andlerBuffers[_i]
-        __off(handler.el, handler.ev, handler.handler)
+    /**
+     * @description |> When a click happens outside the valid area, close and destroy the pop.
+     * @param {Element} _0ri$el - element(s) considered as the valid area
+     * @param {Event} _7ar$ev - the trigger event
+     * @param {Function} _0nCall_ - callback fired when the click is outside
+     */
+    function $4OT3lArea($_0ri$el: Element | Element[], $_7ar$ev: Event, $_0nCall_: Function) {
+      const els = Array.isArray($_0ri$el) ? $_0ri$el : [$_0ri$el]
+      if (els.every(($el) => !$el.contains($_7ar$ev.target as Node))) {
+        $_0nCall_ && $_0nCall_()
       }
-      _4andlerBuffers.length = 0
     }
-    // 气泡者组件创建时, 自动绑定相关事件
+
+    // * Side effect - once the pop is rendered, listen for outside clicks to close it
+    function _E$effectNotAreaEvent() {
+      // NOTE: previously bound to _Get$ParentEl() (the resolved container).
+      // That breaks once the singleton pop's root is re-parented across
+      // refer switches (the listener stays on the OLD container and misses
+      // clicks elsewhere). Binding to document via event delegation is
+      // level-agnostic: $4OT3lArea judges by poper/refer containment only.
+      const parentNode: Element | Text | Document = document
+      EvCollecter(parentNode, 'click', ($e: Event) => {
+        // Defer the outside-click close to the next tick: if the very same
+        // click also opens another managed pop, that pop's watcher (and its
+        // toPop acquisition) runs first in this tick's flush queue, so the
+        // fly transition can still start from this pop's real position.
+        nextTick(() => {
+          $4OT3lArea([_Get$Poper(), _Get$Refer()] as Element[], $e, onLeaveArea)
+        })
+      })
+    }
+
+    // When the pop element mounts, bind hover keep-alive events (hover mode only)
     function _createEvOnMountFade() {
       const poper = _Get$Poper()!
       if (props.popMode === 'hover' && _4andlerBuffers.findIndex(($_z) => $_z.el === poper) < 0) {
-        // 美九.P0P3r.气泡移入(<|~^~<|)
-        EvCollecter(poper, 'mouseenter', $blur$moving_2_O9en)
-        // 美九.P0P3r.气泡移出(<|^~^<|)
-        EvCollecter(poper, 'mouseleave', $blur$moving_2_C1ose)
+        // pop hovered -> keep the pop open
+        EvCollecter(poper, 'mouseenter', onEnterArea)
+        // pop left -> close the pop
+        EvCollecter(poper, 'mouseleave', onLeaveArea)
       }
     }
+
+    // Acquire the singleton pop slot; when replacing another managed pop,
+    function _flight2NextPop3r() {
+      // Dispatcher body mode: slot acquisition is driven by the dispatcher (show/toPop)
+      if (props.referEl) return
+
+      const refer = _Get$Refer()
+      if (!refer || !props.isPoperOne) return
+
+      _pendingFromPop = M9PopoverController.toPop(refer)
+    }
+
+    // Release the singleton pop slot on hide
+    function _releasePop3r() {
+      if (props.isPoperOne) {
+        M9PopoverController.releasePop()
+      }
+    }
+
     //
     function _run2RenderPop3r() {
-      // ! 如果 气泡渲染标志为 false, 说明在此刻之前, 气泡的开关从未打开过, 气泡还未在DOM文档结构树中
+      // If the render flag is false, the pop has never opened before and is not in the DOM yet
       if (!_pop3rRenderFLAG) {
         _pop3rRenderFLAG = true
 
         _createEvOnMountFade()
-        // 有效区域之外__关闭气泡框
+        // close the pop when clicking outside the valid area
         _E$effectNotAreaEvent()
       }
 
-      // 如果 气泡渲染标志为 true, 说明气泡已经渲染在DOM中了, 相关的事件监听器也已经存在, 无需重复添加 $Ev_Handler
-      // 在 Vue3 里调试发现, 代码执行到这里, 气泡元素被包裹的那个 Bound 弹跳动画元素干扰了, Bound动画周期没执行完,
-      // 它里边的气泡元素 getBoundingClientRect 取值有问题都是 0, 故此处的 setMP0P$Pos 由Bound组件回调通知调用, 最合适
-      // 如果在 react 中处理, 这个属于组件间通信, 可能略微小繁琐, 后边研究下怎么在react中处理 setMP0P$Pos()
+      _flight2NextPop3r()
 
       return 1
     }
-    // 开关关闭后, 销毁 - 气泡元素 及其相关属性
+    // When the switch closes, destroy the pop element and its related bindings
     function _unRenderPop3r() {
       _pop3rRenderFLAG = false
-      _destoryEvInUnmountFade()
-      // todo 2._
-      _ReE$effectNotAreaEvent()
+      EvDropper(_Get$Poper()!)
+      // Paired with _E$effectNotAreaEvent: the outside-click listener now
+      // lives on document, not on the (possibly re-parented) container.
+      EvDropper(document)
+      _releasePop3r()
 
       return 0
     }
@@ -304,78 +395,93 @@ export default defineComponent({
       (newShowPop || newM5howP0P && _run2RenderPop3r()) || _unRenderPop3r()
     })
 
-    onBeforeMount(() => {
-      const { popMode } = props
-      _epop$Mode = !popMode ? 'click' : popMode
-    })
-
     onMounted(() => {
-      /** @see 获取外部指引器|>|>先驱者元素Ref引用 */
+      // Dispatcher body mode: the refer element comes later from the
+      // dispatcher, and triggers are driven externally - nothing to bind here.
+      if (props.referEl) return
 
-      // ! 断空卫语句
-      if (!R7arReference.value) return
+      // guard: the refer element must exist
+      if (!R7arRefer.value) return
 
       /*
-       * 1)._如果先驱者元素存在
-       * 2)._气泡组件不受控制
-       * 3)._直接先添加 - 先驱者元素 上边的开关取反事件句柄
+       * 1). When the pop is NOT externally controlled,
+       * 2). bind the open/close triggers on the refer element ourselves.
        */
-      const isNotController = !_U$isControlled()
-      if (isNotController) { handleEventHooksOnReferer() }
+      if (!_U$isControlled()) {
+        handleEventHooksOnReferer()
+      }
 
-      // ! 断空卫语句
+      // guard: the pop element must exist
       if (!PopRef.value) return
 
-      /*
-       * 1)._如果气泡元素存在
-       * 2)._开启气泡的渲染事件
-       */
       _run2RenderPop3r()
     })
 
     onUnmounted(() => {
-      // ! 气泡渲染标志 - 重置为 false
       _pop3rRenderFLAG = false
-      // this.reference.parentNode.replaceChild(this.reference.cloneNode(true), this.reference);
-      _killEvListeners()
-      // this.setState = (state, callback) => void 0
-      // __off(/** @see this.PopRef */ document, this.epop$Mode, this.$blur$click_2_C1ose.bind(this));
+      _releasePop3r()
+
+      if (!props.isPoperOne) return
+      const refer = _registeredRefer || _Get$Refer()
+      if (refer) {
+        M9PopoverController.detachRefer(refer)
+      }
+      _registeredRefer = null
+      EvDropper()
     })
 
     return {
       state,
-      PopRef, R7arReference,
+      PopRef, R7arRefer,
 
       isValidArea,
-      setMP0P$Pos
+      setMP0P$Pos,
+      setReferRef
     }
   },
   render(_this) {
     const basePopCls = 'miku-pop'
     const { position = 'top' } = this.$props
-
     const pop_final_cls = classNames(basePopCls, `place-${position}`)
-
-    const children = this.$slots.default!()
-    const content = this.$slots.content!()
 
     const positionStyle = {
       left: this.state.P0P5tyle.left + 'px',
       top: this.state.P0P5tyle.top + 'px'
     }
 
-    /** @see 没有悬挂Root容器时,PopRef能正常在Mount钩子中获取||调用Root容器后,就不行了  */
+    // Managed (isPoperOne) usage without an injected referEl: render only
+    // the refer (trigger) child - the visible pop bubble is the single
+    // poper instance owned by the singleton dispatcher.
+    if (this.isPoperOne && !this.referEl) {
+      if (!this.$slots.default) return null
+      const children = this.$slots.default!()
+      return h(children[0], { ref: ($_r_: any) => this.setReferRef($_r_) }, undefined)
+    }
+
+    // Dispatcher body (referEl injected): the content comes from props.
+    // Standalone usage (isPoperOne=false): the content comes from the
+    // #content slot, and the refer (trigger) child is rendered alongside.
+    const isDispatcherBody = !!this.referEl
+    const content = isDispatcherBody ? this.content : this.$slots.content!()[0]
+    const poper = (
+      <HangRoot getContainer={this.isPoperOne ? () => M9PopoverController.getPopRoot() : undefined}>
+        <Bound ref={($_r_: any) => this.PopRef = $_r_} active={this.state.M5howP0P} onNotifyEntered={this.setMP0P$Pos}>
+          <div className={pop_final_cls} style={positionStyle}>
+            <div className={`${basePopCls}__inner`}>{content}</div>
+          </div>
+        </Bound>
+      </HangRoot>
+    )
+
+    if (isDispatcherBody) return poper
+
+    const children = this.$slots.default!()
+
+    /** @see Xx  */
     return (
-      // 类似于|>Vue<|的|>template<|模板
       <>
-        <HangRoot>
-          <Bound ref={($_r_: any) => this.PopRef = $_r_} active={this.state.M5howP0P} onNotifyEntered={this.setMP0P$Pos}>
-            <div className={pop_final_cls} style={positionStyle}>
-              <div className={`${basePopCls}__inner`}>{content}</div>
-            </div>
-          </Bound>
-        </HangRoot>
-        {h(children[0], { ref: ($_r_: any) => this.R7arReference = $_r_ }, undefined)}
+        {poper}
+        {h(children[0], { ref: ($_r_: any) => this.R7arRefer = $_r_ }, undefined)}
       </>
     )
   }

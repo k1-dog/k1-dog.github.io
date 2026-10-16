@@ -91,7 +91,7 @@ $miku-file-preCls: '#{$m9-preCls}-file';
         color: m9Themed('m9-element-fontClr');
       }
       .file-name {
-        @include m9-text-overflow();
+        @include m9-text-overflow('only-lines', 2);
         max-width: 200px;
       }
       .file-size {

@@ -89,7 +89,7 @@ interface MSelectState {
 export default defineComponent({
   name: 'M9Select',
   props: {
-    modelValue: { type: Array as PropType<MS_OPT[]> },
+    modelValue: { type: Array as PropType<MS_OPT[] | MS_OPT> },
     options: { type: Array as PropType<MSelectProps['options']>, default: () => [] },
     optionSlot: { type: Function as PropType<MSelectProps['optionSlot']> },
     valueInputSlot: { type: Function as PropType<MSelectProps['valueInputSlot']> },
@@ -317,13 +317,13 @@ export default defineComponent({
 
     watch(() => props.modelValue, ($newSelectedItems) => {
       if (props.multiable) {
-        state.valGroup = $newSelectedItems
+        state.valGroup = $newSelectedItems as MS_OPT[]
       } else {
-        state.innerVal = $newSelectedItems
+        state.innerVal = $newSelectedItems as MS_OPT
       }
     })
 
-    function onChangeFilteringV($filteringVal?: string) {
+    function onFilteringV($filteringVal?: string) {
       state.filteringV = $filteringVal
     }
 
@@ -456,7 +456,7 @@ export default defineComponent({
       onMultiSelect,
       onHandleSelect,
       onFilterOptions,
-      onChangeFilteringV,
+      onFilteringV,
       onOpenSelectPanel,
       renderMultiSelectX,
       rowHeight: 30,
@@ -466,7 +466,7 @@ export default defineComponent({
   render() {
     const { multiable, onFilter } = this.$props
     const { options_1, innerVal = {}, selectPanelVisible, filteringV } = this.state
-    const { playValueGroup, isSelectAll, onSelectAll, renderMultiSelectX, onFilterOptions, onChangeFilteringV, onOpenSelectPanel, onMultiSelect, onHandleSelect } = this
+    const { playValueGroup, isSelectAll, onSelectAll, renderMultiSelectX, onFilterOptions, onFilteringV, onOpenSelectPanel, onMultiSelect, onHandleSelect } = this
 
     return (
       <>
@@ -490,7 +490,7 @@ export default defineComponent({
             style={{ ...this.state.select$stat, position: 'relative' }}
           >
             <div className={mselect_options_preCls} ref={($optionsPanelR) => this.optionsPanelRef = $optionsPanelR}>
-              {onFilter && <FilterOptsInput filteringV={filteringV} onRunFilter={onFilterOptions} onChangeFilteringV={onChangeFilteringV} />}
+              {onFilter && <FilterOptsInput filteringV={filteringV} onRunFilter={onFilterOptions} onFilteringV={onFilteringV} />}
               <div ref={($optionsPanelViewportR) => this.optionsPanelViewportRef = $optionsPanelViewportR} className={`${mselect_options_preCls}--viewport`} onClick={multiable ? onMultiSelect : onHandleSelect}>
                 <VScroller ref={($vsR: any) => this.vsScrollerRef = $vsR} vsUnitHeight={this.rowHeight} data={options_1}>
                   {
@@ -544,16 +544,15 @@ type TMMFilterOptions = {
   onRunFilter: (filter_val: string | undefined) => void
 } & {
   filteringV?: string
-  onChangeFilteringV: (search_val: string) => void
+  onFilteringV: (search_val: string) => void
 }
 
 const FilterOptsInput = ($props: TMMFilterOptions) => {
-  const { filteringV, onChangeFilteringV, onRunFilter } = $props // innerInputtedVal
-  const setFilteringVal = ($_filteringVal) => onChangeFilteringV($_filteringVal)
+  const { filteringV, onFilteringV, onRunFilter } = $props // innerInputFV
+  const setFilteringV = ($filteringV) => onFilteringV($filteringV)
 
-  const onFiltering = ($inputting_text: HTMLInputElement['value']) => {
-    const filteringVal = $inputting_text
-    setFilteringVal(filteringVal)
+  const onFiltering = ($filteringText: HTMLInputElement['value']) => {
+    setFilteringV($filteringText)
   }
 
   // function onBlurHandle () {
@@ -563,10 +562,6 @@ const FilterOptsInput = ($props: TMMFilterOptions) => {
   //     }
   //   })
   // }
-
-  // ! (innerInputtedVal 原选择输入框内的值发生变化时, 联动模糊搜索值 filteringVal变化)
-  // ! 失焦事件 与 变化事件 几乎同时执行, 失焦事件略晚执行, 但由于vue响应式的合并策略, 一个值多次变化时, 只取最后一次更新, 所以可能就是空值, 影响后边逻辑
-  // watchEffect(() => { setFilteringVal(props.innerInputtedVal) })
 
   return (
     <div className={mselect_filter_search__input}>

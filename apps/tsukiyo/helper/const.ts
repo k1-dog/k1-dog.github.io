@@ -25,6 +25,10 @@ const HOVER_SCALE = 1.05         // hover 缩放比例
 const STROKE_NORMAL = 2          // 正常描边宽
 const STROKE_LOCKED = 4          // 锁定描边宽
 const ARC_GAP_EPS = 0.01         // 扇形间隙 epsilon
+/** Ring primitive stroke width / radius ratio — a ring is drawn as a HOLLOW
+ *  stroked circle (no fill); the stroke stays proportional to the radius
+ *  so the ring reads thin at every ripple scale */
+const RING_WIDTH_RATIO = 0.14
 
 // —— 视线交互（滚轮推拉 + 拖拽绕转）——
 const ZOOM_STEP = 0.0016         // 每像素 deltaY → 缩放因子（一格 ≈ ×1.17）
@@ -77,13 +81,14 @@ const TOOLTIP = {
 // —— 模型 ——
 const DEFAULT_CAP = 1024         // SoA 初始容量
 const AABB_HIT_PAD = 4           // AABB 命中 padding
-const GEO_SLOTS_EACH_ELEM = 3    // aux 槽位/元素：[r, startAng, endAng]
+const GEO_SLOTS_EACH_ELEM = 5    // aux 槽位/元素：Arc [r,ang0,ang1] / Tri [x2,y2] / Curve [cp1x,cp1y,cp2x,cp2y]
 const ARC_START_ANGLE = -Math.PI / 2  // 弧起始角（12点钟方向）
 const DEFAULT_BAR_W = 30         // 默认柱宽
 const TEXT_DEFAULT_SIZE = 14     // Text 默认字号
 
 // —— 空间索引 ——
 const DEFAULT_CELL_SIZE = 64     // 哈希网格 cell 尺寸
+const HIT_TOLERANCE = 10         // 空手兜底邻近命中容差（px，光标到元素最大距离）
 
 // —— 调度器 ——
 const TICK_MS = 16               // 单 tick 时长（lockstep）
@@ -159,6 +164,7 @@ export {
   STROKE_NORMAL,
   STROKE_LOCKED,
   ARC_GAP_EPS,
+  RING_WIDTH_RATIO,
   DIRTY_PAD_RATIO,
   DIRTY_PAD_PX,
   GRID_STYLE,
@@ -174,6 +180,7 @@ export {
   DEFAULT_BAR_W,
   TEXT_DEFAULT_SIZE,
   DEFAULT_CELL_SIZE,
+  HIT_TOLERANCE,
   TICK_MS,
   DPR_MAX,
   CURVE_NORMAL_RATIO,
