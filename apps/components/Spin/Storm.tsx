@@ -665,6 +665,7 @@ export default defineComponent({
     }
 
     onMounted(async () => {
+      if (import.meta.env.SSR) return
       if (StormCanvasRef.value) {
         _tsukiyo = new Tsukiyo(StormCanvasRef.value)
           .scale(DIM)

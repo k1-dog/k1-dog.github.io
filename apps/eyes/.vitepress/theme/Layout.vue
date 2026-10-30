@@ -16,13 +16,9 @@ const route = useRoute()
 const router = useRouter()
 const storming = ref(false)
 const stormHostRef = ref(null)
+const isSsr = import.meta.env.SSR
 
-if (!import.meta.env.SSR) {
-  // pin the storm host over the whole right-hand content block —
-  // everything right of the sidebar and below the nav bar (page title,
-  // body, right-side outline); measured from the live chrome elements so
-  // sidebar collapse / reflow is captured; sync runs only on route
-  // transitions, the only moments the mask is visible
+if (!isSsr) {
   const syncRect = () => {
     const host = stormHostRef.value
     if (!host) return
@@ -63,12 +59,11 @@ if (!import.meta.env.SSR) {
       </button>
     </template>
     <template #layout-top>
-      <!-- single depth-of-field veil — one full-screen blurred backdrop
-           wrapping the storm host: the nav bar and sidebar blur away
-           behind it while the storm scene (z:40) stays sharp on top -->
       <div v-show="storming" class="k1-storm-blur">
         <div ref="stormHostRef" class="k1-storm-host">
-        <M9Storm :spinning="storming" text="加载中" />
+        <ClientOnly>
+           <M9Storm :spinning="storming" text="加载中" />
+        </ClientOnly>
         <button
           v-show="storming"
           class="k1-storm-close"
