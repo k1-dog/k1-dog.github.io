@@ -1,8 +1,7 @@
 /**
- * kit — helper 通用工具箱：类型/字符串/UUID/深拷贝/绑定、
- * Hs_Wish 异步链、Hs_Pool 对象池、Intake 缓冲队列（Hs_ = helper 工具族约定）
+ * kit — intake 缓冲：把 tick 外事件（DOM）送进 tick 的唯一通道、
+ * 突发合并为每帧一次 drain
  */
-// —— 类型判断 ——
 
 type AnyObject = Record<string, any>
 
@@ -105,19 +104,11 @@ export function Hs_cloneDeep ($data: any) {
   return cloneData
 }
 
-// —— this 绑定 ——
-
-export function Hs_bindThis ($this: any, $methodNames: Array<any> = [], ...$arguments: any[]) {
-  $methodNames.forEach($methodName => {
-    $this[$methodName] && ($this[$methodName] = $this[$methodName].bind($this, ...$arguments))
-  })
-}
-
 // —— 异步任务链 ——
 
 /**
- * Hs_Wish（许愿）— 异步任务链：comeTrue 每次推进一格（扁平游标不递归），
- * 由 Scheduler tick 统一驱动。new Hs_Wish().wish(fn).wish(fn)...comeTrue()
+ * Hs_Wish（许愿）— 异步任务链：comeTrue 每次推进一格（扁平游标不递归）、
+ * 由 Scheduler tick 统一驱动new Hs_Wish().wish(fn).wish(fn)...comeTrue()
  */
 type WishFn = (prev: any, comeTrue: (v: any) => void) => void
 
@@ -183,19 +174,13 @@ export class Hs_Pool<T> {
   }
 }
 
-// —— Intake 缓冲队列 ——
-
-/**
- * Intake — 摄入口：tick 外（浏览器事件）feed 投递 → 暂存，
- * tick 内（scheduler task）drain 提取清空；16ms 内多次 feed 合并 = 天然节流
- */
 export interface Intake<T = any> {
   feed(msg: T): void
   drain(): T[]
   readonly pending: boolean
 }
 
-export class IntakeImpl<T = any> implements Intake<T> {
+class IntakeImpl<T = any> implements Intake<T> {
   private queue: T[] = []
   private _pending = false
 

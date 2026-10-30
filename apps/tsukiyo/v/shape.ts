@@ -1,146 +1,332 @@
 /**
- * shape — 图形原语工厂 + point 写入 SoA：
- * Shape = 描述符（type + opts + fill），'_' 占位由 coord 填充；
- * pointTask 是 SoA 图形数组唯一写入者（src/dimX/dimY/value/type/fill/w/h/aux/x/y/anim 单点物化）
+ * v/shape — shape 阶段：图形定型 + 形状注册；一个形状 = 一个 ShapeSpec（九字段封顶）
+ * Shapes.custom 返回同级工厂闭包——零全局注册表、可 tree-shake、多实例安全
+ * （内置形状同走此路径——dogfooding）；本阶段只写定型几何：位置归 coord、跨图形封闭归 paths
  */
-import type { ShapeDesc, Element, Plugins, CoordVal } from '../yomi'
-import { Prim, _ } from '../yomi'
+import type { ShapeDesc, ShapeSpec, Element, Plugins, CoordCtx, Box as BoxT } from '../yomi'
+import { _ } from '../yomi'
 import type { TsuModel } from '../m/model'
-import { Hm_rgba, Hm_palette } from '../helper/maths'
-import { DEFAULT_BAR_W, GEO_SLOTS_EACH_ELEM } from '../helper/const'
+import { Pen } from './pen'
+import { Hm_rgba, Hm_color, Hm_map } from '../helper/maths'
+import { DEFAULT_BAR_W, TAU, ARC_GAP_EPS, CURVE_NORMAL_RATIO, CURVE_BEND_MAX_PX } from '../helper/const'
 
 export const rgba = Hm_rgba
 
 /**
- * aux slot map — per-Prim opts key → aux slot index (single materialize
- * entry, one loop, no scattered per-Prim branches):
- *   Circle: aux[0]=r
- *   Arc:    aux[0]=r, aux[1]=startAng, aux[2]=endAng
- *   Triangle: aux[0]=x2, aux[1]=y2
- *   Curve:  aux[0]=cp1x, aux[1]=cp1y, aux[2]=cp2x, aux[3]=cp2y
- * null = slot unused by this Prim (left untouched). A value that is
- * undefined or the `_` placeholder writes a NaN sentinel instead.
+ * 生长函数 — 值 → 局部尺寸（缺省不生长）
+ * 值到像素的换算统一在这里完成：grow 是唯一的「值 → 尺寸」hook、
+ * 于是 spec 只声明生长轴、不需要在 geo 里猜数据单位
  */
-const AUX_SLOTS: Partial<Record<Prim, readonly (string | null)[]>> = {
-  [Prim.Circle]: ['r', null, null, null, null],
-  [Prim.Arc]: ['r', 'startAng', 'endAng', null, null],
-  // Ring — hollow stroked circle (ripple/halo semantics): aux[0] = r, the
-  // ONLY geometry; the hollow-vs-filled distinction lives in the TYPE
-  // channel (Prim.Ring vs Prim.Circle/Arc), never in an aux slot
-  [Prim.Ring]: ['r', null, null, null, null],
-  [Prim.Triangle]: ['x2', 'y2', null, null, null],
-  [Prim.Curve]: ['cp1x', 'cp1y', 'cp2x', 'cp2y', null],
-  // Rect: aux[0] = centered flag (1 = coord x/y anchor the CENTER, the
-  // coord pass converts to the top-left for the renderer)
-  [Prim.Rect]: ['centered', null, null, null, null],
+export const Grow = {
+  /** 柱 — 高度 = 值映射到 [0, h]、锚点即数据点 y、柱身向下画 */
+  y: ($v: number, $e: BoxT, $c: CoordCtx): void => {
+    $e.h = Hm_map($v, $c.v0, $c.v1, 0, $c.h)
+  },
+  /** 径向 — 半径 = 值映射到 [0, min(w,h)/2]（玫瑰） */
+  r: ($v: number, $e: BoxT, $c: CoordCtx): void => {
+    $e.r = Hm_map($v, $c.v0, $c.v1, 0, Math.min($c.w, $c.h) / 2)
+  },
 }
 
-// Shape 工厂 — '_' 占位由 coord 填充
-export function Shape($type: Prim, opts: Record<string, CoordVal> = {}, $fill?: number): ShapeDesc {
-  return { type: $type, opts, fill: $fill }
+/**
+ * 补间推导 — 局部盒按进度 p 改写（形状语义各自不同、这就是"统一配置"）
+ * 用户可用 ShapeSpec.tween 覆盖任意一种
+ */
+export function tweenBox($spec: ShapeSpec, $e: BoxT, $p: number): void {
+  if ($spec.tween) { $spec.tween($e, $p); return }
+  switch ($spec.kind) {
+    /** 柱 — 底边固定、向上长高（geo 原点在柱底中心、缩放即长高） */
+    case 'rect':
+      $e.h *= $p
+      return
+    /** 圆 / 环 — 半径放大 */
+    case 'circle':
+    case 'ring':
+      $e.r *= $p
+      return
+    /** 线 / 曲线 — 沿线走向伸张（不是纵向长高） */
+    case 'line':
+    case 'curve':
+      $e.w *= $p
+      $e.h *= $p
+      return
+    /** 弧 / 扇 — 角度扫掠（半径恒定、饼图与玫瑰的正确观感） */
+    case 'arc': {
+      const span = $e.endAng - $e.startAng
+      $e.endAng = $e.startAng + span * $p
+      return
+    }
+    /** 三角扇 — 径向伸展 */
+    case 'triangle':
+      $e.w *= $p
+      $e.h *= $p
+      $e.ax = ($e.ax ?? 0) * $p
+      $e.ay = ($e.ay ?? 0) * $p
+      return
+    default:
+      return
+  }
 }
 
+// —— 注册表 ——
+// id 是 shape 阶段写入 SoA 的唯一定型标识；0 恒为默认（rect）
+const REG: ShapeSpec[] = []
+export const DEFAULT_SHAPE_ID = 0
+
+/** 注册一个形状、返回与 Shapes.rect 同级的工厂闭包 */
+export function registerShape($spec: ShapeSpec): ($opts?: Record<string, number>, $fill?: number) => ShapeDesc {
+  const id = REG.length
+  REG.push($spec)
+  return ($opts?: Record<string, number>, $fill?: number): ShapeDesc => ({ id, opts: $opts, fill: $fill })
+}
+
+/** id → spec（render / spatial / paths 读取声明） */
+export function specOf($id: number): ShapeSpec | undefined {
+  return REG[$id]
+}
+
+// —— 内置形状：全部由同一份 spec 描述（与用户自定义走同一路径）——
+
+// 原点约定（唯一来源 = geo 自己）：局部坐标的 (0,0) 就是锚点
+// 于是 render 只做一次 translate(x, y)、框架不再有 center / baseBottom 开关
+
+/**
+ * 矩形 — 原点在锚点（= 数据点的 y、即柱顶）、柱身向下画
+ * 与 `Axis.v`（底边向上度量）配合：锚点天然落在数值高度上、
+ * 值越大锚点越高、柱身再向下补到基线tween 只收缩 h
+ */
+const rect = registerShape({
+  kind: 'rect',
+  fill: true,
+  three: 'box',
+  grow: Grow.y,
+  slots: { w: DEFAULT_BAR_W },
+  geo: ({ w, h }, $o) => { $o.rect(-w / 2, 0, w, h) },
+})
+
+/** 圆 — 原点即圆心 */
+const circle = registerShape({
+  kind: 'circle',
+  fill: true,
+  slots: { r: 4 },
+  geo: ({ r }, $o) => { $o.moveTo(r, 0); $o.arc(0, 0, r, 0, TAU) },
+})
+
+/** 线段 — 连本槽锚点到 Δ 目标（w/h 是相对偏移） */
+const line = registerShape({
+  kind: 'line',
+  three: 'bar',
+  slots: {},
+  geo: ({ w, h }, $o) => { $o.moveTo(0, 0); $o.lineTo(w, h) },
+})
+
+/** 弧 / 扇形 — 原点即圆心；startAngle / endAngle 为 NaN 时由 paths 按值比切分 */
+const arc = registerShape({
+  kind: 'arc',
+  fill: true,
+  three: 'sector',
+  slots: { r: 60, startAng: NaN, endAng: NaN },
+  geo: ({ r, startAng, endAng }, $o) => {
+    const from = Number.isFinite(startAng) ? startAng : 0
+    const to = Number.isFinite(endAng) ? endAng : TAU
+    $o.moveTo(0, 0)
+    $o.arc(0, 0, r, from - ARC_GAP_EPS, to + ARC_GAP_EPS)
+    $o.closePath()
+  },
+})
+
+/** 环 — 原点即圆心（涟漪 / 光晕语义） */
+const ring = registerShape({
+  kind: 'ring',
+  slots: { r: 4 },
+  geo: ({ r }, $o) => { $o.moveTo(r, 0); $o.arc(0, 0, r, 0, TAU) },
+})
+
+/** 文字 — 唯一无法 Path2D 化的形状（render 直接 fillText） */
+const text = registerShape({
+  kind: 'text',
+  text: true,
+  slots: { size: 0 },
+  geo: () => { /* 文字走 fillText——无路径 */ },
+})
+
+/** 曲线 — 控制点缺省时按 bend 比例沿段法向生成 */
+const curve = registerShape({
+  kind: 'curve',
+  // bend 默认 0.2（不是 NaN）：缺省弯度是形状语义、不该依赖 isFinite 兜底
+  slots: { bend: 0.2, cp1x: NaN, cp1y: NaN, cp2x: NaN, cp2y: NaN },
+  geo: ({ w, h, bend, cp1x, cp1y, cp2x, cp2y, ox, oy }, $o) => {
+    // 段从锚点起步——路径为空时 canvas 会从第一个控制点起子路径、静默画出半条曲线
+    $o.moveTo(0, 0)
+    if (Number.isFinite(cp1x) && Number.isFinite(cp1y) && Number.isFinite(cp2x) && Number.isFinite(cp2y)) {
+      // 控制点为图表绝对坐标 → 换算到局部（ox/oy 由 paths 阶段填入）
+      const lx = cp1x - (ox ?? 0)
+      const ly = cp1y - (oy ?? 0)
+      const rx = cp2x - (ox ?? 0)
+      const ry = cp2y - (oy ?? 0)
+      $o.bezierCurveTo(lx, ly, rx, ry, w, h)
+      return
+    }
+    // 控制点 = 段中点沿法向偏移、幅度 ∝ 段长（缺省弯度带像素上限：
+    // 长段按比例会鼓成巨弧、如回绕闭合段 / 跨图形桥接段）
+    // 与段的方向无关（横段/竖段同样的弯度）、因此云幕连线、雨滴焰尾都保持平滑弧
+    const n = Math.hypot(w, h) || 1
+    const a = Math.min(n * (Number.isFinite(bend) ? bend : CURVE_NORMAL_RATIO), CURVE_BEND_MAX_PX)
+    const cx = w / 2 + (-h / n) * a
+    const cy = h / 2 + (w / n) * a
+    $o.quadraticCurveTo(cx, cy, w, h)
+  },
+})
+
+/**
+ * 三角 — 雷达扇区：V0 是本槽锚点、V1 是下一片锚点、V2 是视图中心
+ * ax/ay 由 paths 写入（U 形布局、不依赖 isFinite 兜底：写不到就是 0 面积、暴露问题）
+ */
+const triangle = registerShape({
+  kind: 'triangle',
+  fill: true,
+  slots: { ax: 0, ay: 0 },
+  geo: ({ w, h, ax, ay }, $o) => {
+    $o.moveTo(0, 0)
+    $o.lineTo(w, h)
+    $o.lineTo(ax, ay)
+    $o.closePath()
+  },
+})
+
+/**
+ * 形状工厂 — 与 AntV registerShape 的闭包形式等价——但：
+ * 拿到的是「局部盒」而非绝对像素、框架自动接管 AABB / 命中 / 生长
+ */
 export const Shapes = {
-  rect: ($w: number, $h: number, $fill?: number) => Shape(Prim.Rect, { x: _, y: _, w: $w, h: $h }, $fill),
-  // centered rect — coord x/y anchor the RECT CENTER (column-center ticks
-  // line up with the element's middle); the coord pass converts to top-left
-  rectC: ($w: number, $h: number, $fill?: number) =>
-    Shape(Prim.Rect, { x: _, y: _, w: $w, h: $h, centered: 1 }, $fill),
-  circle: ($r: number, $fill?: number) => Shape(Prim.Circle, { x: _, y: _, r: $r }, $fill),
-  line: ($fill?: number) => Shape(Prim.Line, { x: _, y: _, x2: _, y2: _ }, $fill),
-  // arc — 角度传 `_`（占位）交系统按 value 比例分配（饼图扇段）；显式角度 = 固定扇（散点满圆）
-  arc: ($r: number, $startAng: CoordVal, $endAng: CoordVal, $fill?: number) =>
-    Shape(Prim.Arc, { x: _, y: _, r: $r, startAng: $startAng, endAng: $endAng }, $fill),
-  // ring — 空心圆环原语（涟漪/光环语义）：描边不填充，环宽按半径比例
-  ring: ($r: number, $fill?: number) =>
-    Shape(Prim.Ring, { x: _, y: _, r: $r }, $fill),
-  // sector — 扇段语法糖（arc 角度占位派生）：角度交 paths 按 value 比例分配（饼图语义，用户零 `_` 依赖）
+  /** 自定义形状 — 返回与 rect 同级的工厂 */
+  custom: registerShape,
+
+  /** 柱 — 原点在柱底中心 */
+  rect: ($w = DEFAULT_BAR_W, $fill?: number) =>
+    ({ id: 0, opts: { w: $w }, fill: $fill } as ShapeDesc),
+  circle: ($r: number, $fill?: number) => ({ id: 1, opts: { r: $r }, fill: $fill } as ShapeDesc),
+  line: ($fill?: number) => ({ id: 2, opts: {}, fill: $fill } as ShapeDesc),
+  arc: ($r: number, $startAng: number, $endAng: number, $fill?: number) =>
+    ({ id: 3, opts: { r: $r, startAng: $startAng, endAng: $endAng }, fill: $fill } as ShapeDesc),
   sector: ($r: number, $fill?: number) =>
-    Shape(Prim.Arc, { x: _, y: _, r: $r, startAng: _, endAng: _ }, $fill),
-  text: ($text: string, $fill?: number) => Shape(Prim.Text, { x: _, y: _, text: $text }, $fill),
-  // 曲线 — 与 Line 同源占位（x,y 起点 + w,h Δ偏移），paths 组装 Δ
-  // cp1/cp2 = 可选三次贝塞尔控制点（绝对画布坐标）：全指定 → 精确三次
-  // 贝塞尔；缺省（NaN 哨兵）→ bezier3ToCurve 升维二次（段中点+法向公式）
-  curve: ($fill?: number, $cp1?: [number, number], $cp2?: [number, number]) =>
-    Shape(Prim.Curve, {
-      x: _, y: _, w: _, h: _,
-      cp1x: $cp1?.[0], cp1y: $cp1?.[1],
-      cp2x: $cp2?.[0], cp2y: $cp2?.[1],
-    }, $fill),
-  // 三角形 — 三顶点占位：V_d(x,y) + V_{d+1}(w,h) + C(aux0,aux1)；coord 写 V_d，paths 写其余
-  triangle: ($fill?: number) =>
-    Shape(Prim.Triangle, { x: _, y: _, w: _, h: _, x2: _, y2: _ }, $fill),
+    ({ id: 3, opts: { r: $r, startAng: NaN, endAng: NaN }, fill: $fill } as ShapeDesc),
+  ring: ($r: number, $fill?: number) => ({ id: 4, opts: { r: $r }, fill: $fill } as ShapeDesc),
+  text: ($fill?: number) => ({ id: 5, opts: {}, fill: $fill } as ShapeDesc),
+  curve: ($fill?: number, $cp1?: [number, number], $cp2?: [number, number], $bend?: number) =>
+    ({
+      id: 6,
+      opts: {
+        cp1x: $cp1?.[0] ?? NaN, cp1y: $cp1?.[1] ?? NaN,
+        cp2x: $cp2?.[0] ?? NaN, cp2y: $cp2?.[1] ?? NaN,
+        bend: $bend ?? NaN,
+      },
+      fill: $fill,
+    } as ShapeDesc),
+  triangle: ($fill?: number) => ({ id: 7, opts: {}, fill: $fill } as ShapeDesc),
 }
 
-// point 回调 — 用户自定义元素 → Shape
-export type PointFn = (el: Element, plugins: Plugins, index: number) => ShapeDesc | ShapeDesc[]
+/** 兼容旧写法 — Shape(id, opts, fill) 直接指定注册序号 */
+export function Shape($id: number, $opts: Record<string, number> = {}, $fill?: number): ShapeDesc {
+  return { id: $id, opts: $opts, fill: $fill }
+}
 
-// pointTask — 遍历 elements 调 pointFn 写 SoA（唯一写入点，count 定稿）
-export function pointTask($model: TsuModel, $pointFn: PointFn): void {
+export type { ShapeFn } from '../yomi'
+
+/** 复用的记录画笔 */
+const pen = new Pen()
+
+/**
+ * shape 阶段 — 把每个元素的形状声明物化到 SoA 槽位（本阶段是唯一写入者）
+ * 写入：src / dimX / dimY / value / id / fill / w / h / aux / bounds / paths
+ */
+export function shape($model: TsuModel, $shapeFn: ShapeFn, $ctx: CoordCtx): true {
+  const empty: CoordCtx = { w: 0, h: 0, dX: 1, dY: 1, v0: 0, v1: 1, vΣ: 1 }
+  const ctx = $ctx ?? empty
   const plugins: Plugins = {
     vToM: ($slot: number) => $model.vToM($slot),
     mToV: ($query: Partial<Element>) => $model.mToV($query),
   }
 
-  // re-typing overwrites the whole SoA from slot 0 — the PREVIOUS frame's
-  // slots (0..count-1) may hold pixels of elements that are gone this frame
-  // (e.g. storm bolt when the flash window closes, whose slot is reused by a
-  // later element). Mark them all dirty so the layering pass unions their
-  // old AABBs into the clear region and no stale pixels survive.
-  const prevCount = $model.count
-  for (let i = 0; i < prevCount; i++) $model.markDirty(i)
-
-  let _writeIdx = 0
-  for (let _i = 0; _i < $model.elements.length; _i++) {
-    const el = $model.elements[_i]
-    const result = $pointFn(el, plugins, _i)
-    if (!result) continue   // null/undefined 守卫 — 条件跳过元素
+  let _slot = 0
+  const els = $model.elements
+  for (let _i = 0; _i < els.length; _i++) {
+    const el = els[_i]
+    const result = $shapeFn(el, plugins, _i, ctx)
+    if (!result) continue
     const descs = Array.isArray(result) ? result : [result]
 
     for (const desc of descs) {
-      // 容量守卫 — 循环扩容直至容纳
-      while (_writeIdx >= $model.capacity) $model.grow($model.capacity * 2)
+      const spec = specOf(desc.id)
+      if (!spec) continue
+      $model.reserve(_slot + 1)
 
-      $model.src[_writeIdx] = _i   // vToM 反查
-      // 自描述取值：el.dimX 是字段名，维度值在 el[el.dimX]
-      $model.dimX[_writeIdx] = $model.dimXMap.get(String(el[el.dimX])) ?? 0
-      $model.dimY[_writeIdx] = $model.dimYMap.get(el.dimY) ?? 0
-      $model.value[_writeIdx] = el.value
-      $model.type[_writeIdx] = desc.type
-      $model.fill[_writeIdx] = desc.fill ?? Hm_palette.defaultFill
+      $model.src[_slot] = _i
+      $model.dimX[_slot] = $model.dimXMap.get(String(el[el.dimX])) ?? 0
+      $model.dimY[_slot] = $model.dimYMap.get(el.dimY) ?? 0
+      $model.value[_slot] = el.value
+      $model.id[_slot] = desc.id
+      $model.fill[_slot] = desc.fill ?? Hm_color.fill
+      $model.x[_slot] = Number.NaN
+      $model.y[_slot] = Number.NaN
 
-      // 非占位符几何参数写 SoA
-      const { opts } = desc
-      if (opts.w !== undefined && opts.w !== _) $model.w[_writeIdx] = opts.w as number
-      if (opts.h !== undefined && opts.h !== _) $model.h[_writeIdx] = opts.h as number
-      // aux 槽位物化 — 每原语一张 opts→slot 映射表，单循环收敛写入：
-      // Arc: r/startAng/endAng；Triangle: x2/y2；Curve: cp1x/cp1y/bend。
-      // 值 undefined 或占位 `_` → NaN 哨兵（消费方按原语语义解读）
-      const slots = AUX_SLOTS[desc.type]
-      if (slots) {
-        const a = _writeIdx * GEO_SLOTS_EACH_ELEM
-        for (let s = 0; s < slots.length; s++) {
-          const key = slots[s]
-          if (key === null) continue
-          const v = opts[key]
-          $model.aux[a + s] = v === undefined || v === _ ? NaN : (v as number)
-        }
+      // 参数落 aux —— spec.slots 顺序即槽序、缺省取默认值
+      const a = _slot * 5
+      const defaults = spec.slots ?? {}
+      let _s = 0
+      for (const key in defaults) {
+        const v = desc.opts?.[key]
+        $model.aux[a + _s] = v !== undefined ? v : defaults[key]
+        _s++
+        if (_s >= 5) break
       }
+      for (; _s < 5; _s++) $model.aux[a + _s] = Number.NaN
 
-      // x/y 占位留给 coord
-      $model.x[_writeIdx] = 0
-      $model.y[_writeIdx] = 0
-      // snap 模式直接定格 anim=1（逐帧重定型场景）；默认 0 走 stepAnim 生长
-      $model.anim[_writeIdx] = $model.snapAnim ? 1 : 0
-      $model.markDirty(_writeIdx)
-      _writeIdx++
+      // 定型尺寸 — w 由 slots.w 提供（缺省取 DEFAULT_BAR_W）、h 在 paths 阶段按值求
+      const wv = desc.opts?.w
+      $model.w[_slot] = wv !== undefined && wv !== (_ as unknown)
+        ? wv
+        : (defaults.w ?? DEFAULT_BAR_W)
+      $model.h[_slot] = 0
+      // anim 由 anim 阶段独占（grow / reset）—— shape 只声明 λDelay 的负偏移意图、
+      // 通过 delayOf 记录在 aux 之外的旁路数组、避免每 tick 覆写生长进度
+      $model.λ[_slot] = Number.isFinite(spec.λDelay) ? (spec.λDelay as number) : 0
+
+      _slot++
     }
   }
 
-  $model.count = _writeIdx
+  $model.count = _slot
+  $model.gen++
+  return true
 }
 
-// 默认 pointFn
-export function defaultPointFn($el: Element, $_plugins: Plugins, $_index: number) {
-  return Shapes.rect(DEFAULT_BAR_W, $el.value, Hm_palette.primary)
+/**
+ * 从 SoA 收集槽位局部盒、套用补间后返回（供 render 生长时重跑 geo）
+ * 参数来自 aux（spec.slots 顺序）+ w/h；ox/oy 是锚点
+ */
+export function rebuildBox($m: TsuModel, $ξ: number, $spec: ShapeSpec, $p: number): Record<string, number> {
+  const a = $ξ * 5
+  const defaults = $spec.slots ?? {}
+  const box: Record<string, number> = {}
+  let _s = 0
+  for (const key in defaults) {
+    box[key] = $m.aux[a + _s]
+    _s++
+    if (_s >= 5) break
+  }
+  box.w = $m.w[$ξ]
+  box.h = $m.h[$ξ]
+  box.ox = $m.x[$ξ]
+  box.oy = $m.y[$ξ]
+  tweenBox($spec, box as any, $p > 0 ? $p : 0)
+  return box
 }
+
+export function defaultShapeFn($_$el: Element): ShapeDesc {
+  return Shapes.rect(DEFAULT_BAR_W, Hm_color.fill)
+}
+
+/** 供 layering / grid 复用的画笔 */
+export { pen as shapePen }
+export type { ShapeSpec, BoxT as Box }

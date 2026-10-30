@@ -8,5 +8,8 @@
   },
   "keywords": ["utils for ui-lib"],
   "author": "naTsuM1",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "classnames": "^2.5.1"
+  }
 }

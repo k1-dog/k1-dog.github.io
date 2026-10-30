@@ -1,3 +1,9 @@
 packages:
   - 'apps/*'
-  
+
+# pnpm>=10 blocks dependency install scripts by default (approve-builds
+# equivalent); the workspace's legit build-script packages
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - core-js
+  - esbuild

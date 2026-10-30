@@ -1,435 +1,432 @@
 /**
- * engine — 引擎：注册全部 task 到 Scheduler，装配数据流（纯调度装配层，零布局绘制逻辑）。
- * 数据流（dataDirty 单标志全链驱动）：input → scale(std) → point → coord → paths → layering+draw。
- * 投递语义：data()/resize() 只「暂存 + reset('input')」零 SoA 写入；下一 tick input 消费 pending
- * （std → loadEls 暂存 → dataDirty 置位），point→coord→paths→layering 同 tick
- * 按 after 链串行完成（paths 单点清 dataDirty）→ SoA 永不出现「新值+旧形」跨 tick 混合态，
- * grid 重绘读到的 coordCtx 必为本轮最新。
- * coord 阶段单点生产：engine 持不可变原始 coordRule，③ coord task 每帧 dataDirty 从原始规则
- * 重新解析（string preset 拷贝 / locator 对象复用 / 工厂调用，三分支皆幂等）+ 投影 + 挂 ctx，
- * 解析前无消费者（paths/layering/draw 全部 after coord）。
- * ① input 消费 pending ② point 定型（SoA 唯一写入者）③ coord 单点生产 locator（解析+投影）
- * ④ paths 写非位置几何（Line/Curve Δ 问询 seal 回调）⑤ interact 常驻（用上一帧 spatial 索引，一帧滞后设计）
- * ⑥ layering 常驻 ⑦ draw 常驻 flush。
- * pause(name)/resume(name) 幂等。
+ * engine — 阶段装配：七阶段注册到共享时钟 产物以实参交棒给下一阶段
+ * input → scale → shape → coord → paths → layering → draw
+ * engine 只持有子系统与投递通道——产物绝不落 engine 字段
  */
-import type { DimConf, Renderer, Schedulable, CoordCtx, CoordRule, CoordMapper, ITsukiyoLocator, LayoutFn, Bounds } from '../yomi'
-
+import type { DimConf, Renderer, CoordRule, CoordMapper, LayoutFn, RenderBatch, ITsukiyoLocator, FillRoad, Element, RoadFn, RoadRule, CoordCtx, TsuStatus } from '../yomi'
 import { TsuModel } from '../m/model'
-import { CoordMapper2D } from '../v/camera3'
 import { std } from '../m/std'
-import { pointTask, PointFn } from '../v/shape'
-
-import { resolveCoordLocator } from '../v/coord'
-import { pathsTask, buildClosedPaths, defaultSeal } from '../v/paths'
-import type { SealFn } from '../yomi'
-import { Scheduler } from './scheduler'
-
-import { Grid } from './spatial'
-import { DEFAULT_CELL_SIZE } from '../helper/const'
-import { Dirty } from './dirty'
-import { Interact } from '../v/interact'
+import { scale } from '../m/scale'
+import { shape, ShapeFn, defaultShapeFn } from '../v/shape'
+import { coord, resolveLocator } from '../v/coord'
+import { paths, defaultRoad } from '../v/paths'
+import { grow, reset } from '../v/anim'
+import { TsuSpace } from './spatial'
+import { TsuDirty } from './dirty'
 import { Layering } from '../v/layering'
-import { Hcvs_retina } from '../helper/canvas'
+import { Interact } from '../v/interact'
+import { Evolution } from '../v/evolve'
+import type { EvoVersion } from '../v/evolve'
+import { TsuToolbar } from '../v/toolbar'
 import { createRenderer } from '../v/render'
-
+import { Hcvs_retina } from '../helper/canvas'
+import { Scheduler } from './scheduler'
 
 export interface EngineOpts {
   canvas: HTMLCanvasElement
   renderer: Renderer
-  camera: CoordMapper   // 与 renderer 工厂成对，Grid 聚合区消费
-  pointFn: PointFn
-  sealFn?: SealFn | null
+  camera: CoordMapper
+  /** 时钟 — Tsukiyo 持有 全部子层共享 */
+  scheduler: Scheduler
+  shapeFn?: ShapeFn
+  roadFn?: RoadFn | RoadRule | null
   coord: CoordRule
-  /** external scheduler injection — sub-layers share the MAIN clock
-   *  (single rAF, single lockstep tick; omitted = own new Scheduler) */
-  scheduler?: Scheduler
-  /** task name prefix (sub-layer isolation: `layer0:` never collides) */
+  snapAnim?: boolean
+  /** 阶段名前缀（子层隔离） */
   taskPrefix?: string
-  /** bind mouse Interact? default true; sub-layers pass false (zero DOM listeners) */
+  /** 绑定 DOM 交互？缺省 true；子层传 false */
   interact?: boolean
 }
 
-/** 投递载荷 — 暂存，input 消费（单通道，最后投递胜出） */
-interface Pending {
+/** 投递通道 — 后到优先 本 tick 内消费 */
+interface Inbox {
   raw: any[] | null
   dim: DimConf | null
-  resized: boolean
+  /** 新数据代到达——槽位数在 shape 阶段才可知 生长通道在那里复位 */
+  fresh: boolean
 }
+
+/** 阶段名 — 单一表 每引擎加前缀（frame = 阶段⓪） */
+const STAGES = ['frame', 'input', 'scale', 'shape', 'coord', 'paths', 'layering', 'draw'] as const
 
 export class Engine {
   readonly model = new TsuModel()
-  /** shared (sub-layer) or own scheduler — single-clock contract */
   readonly scheduler: Scheduler
-  readonly spatial: Grid       // 划分区 + 聚合区（camera 构造注入）
-  readonly dirty = new Dirty()
+  readonly space = new TsuSpace()
+  readonly dirty = new TsuDirty()
+  readonly camera: CoordMapper
+
   private renderer: Renderer
   private canvas: HTMLCanvasElement
-  private pointFn: PointFn
-  private sealFn: SealFn = defaultSeal
-
-  /** 坐标系规则 — 原始输入（string preset / locator 对象 / 工厂），不可变；
-   * 每帧 dataDirty 从原始规则重新解析（三分支皆幂等），解析产物挂 this.locator */
-  private coordRule: CoordRule
-  /** 解析产物 — coord task 单点写（resolveCoordLocator：解析 + 投影 + 挂 ctx） */
-  private locator: ITsukiyoLocator | null = null
-  /** one-shot guard — locator init.zoom applied at most once per engine */
-  private zoomApplied = false
-  private viewWidth = 0
-  private viewHeight = 0
-
-  private pending: Pending = { raw: null, dim: null, resized: false }   // 投递暂存
-
-  // closed-path fill layer — closedPaths derived at the tail of the paths
-  // stage (after pathsTask + hook); fillColor registered by the consumer
-  // via setFill; draw stage paints both as the underlay (under strokes)
-  private closedPaths: Path2D[] = []
-  /** AABB union of all chained slots (fill area) — layering unions it into
-   *  the dirty region so the clipped underlay is never cut open */
-  private closedBounds: Bounds | null = null
-  /** AABB union over the PREVIOUS pass's slot positions — derived from the
-   *  spatial index (the SAME old-position store the v24 old-slot dirtying
-   * reads) at the tail of the paths stage, before layering drains it.
-   *  Layering unions it into the dirty region so a per-frame-resizing
-   *  closed chain (storm curtain) never leaves a ghost fill slab. */
-  private oldClosedBounds: Bounds | null = null
-  private fillColor: number | null = null
-
+  private view = { w: 0, h: 0 }
+  private inbox: Inbox = { raw: null, dim: null, fresh: false }
   private interact: Interact | null = null
   private layering: Layering | null = null
-  private paused = new Map<string, Schedulable>()   // 暂停集（resume 重 bind）
-
-  /** task name prefix — all scheduler calls route through taskName() */
+  /** 演化幽灵域 + 工具栏（仅主层） */
+  private evolution: Evolution | null = null
+  private toolbar: TsuToolbar | null = null
+  private evolving = false
   private taskPrefix: string
-  /** registered task names (detach removes them all) */
-  private taskNames: string[] = []
-  /** true = this engine owns the rAF (own Scheduler); shared sub-layers false */
-  private ownsScheduler: boolean
+  private snapAnim: boolean
+  /** coord 规则快照 — 阶段回调闭包捕获 */
+  private coordRule: CoordRule
+  /** paths 规则（声明式 RoadRule 或回调）— paths 阶段统一解析 */
+  private roadRule: RoadFn | RoadRule
+  /** 每帧生产者钩子 — 由引擎时钟驱动 */
+  private frameHook: (() => void) | null = null
+  /** 数据代 — input 递增 scale 监视（布防） */
+  private dataGen = 0
+  private dataSeen = 0
+  /** 视图代 — resize 递增 scale 监视（布防） */
+  private viewGen = 0
+  private viewSeen = 0
+  /** 视口守卫 — 画布离屏时停摆共享时钟 */
+  private io: IntersectionObserver | null = null
+  /** 离屏标志 — 画布离开视口（状态 paused） */
+  private offscreen = false
+  /** 最近消费的 dim — 演化提交必须带它重投递 */
+  private lastDim: DimConf | null = null
+  /** 最近尺度上下文 — 演化值逆映射读取 */
+  private lastCtx: CoordCtx | null = null
+  /** 状态监听 — 变更即推送 绝不轮询 */
+  private statusCbs = new Set<($s: TsuStatus) => void>()
+  private lastStatus: TsuStatus | null = null
 
-  /** taskName — single point of prefix composition (after refs stay prefixed) */
-  private taskName($n: string): string {
+  /** coord 声明的数值 x 域字段（scale 读取） */
+  private get coordDomX(): string | undefined {
+    const r = this.coordRule
+    return typeof r === 'object' && r !== null && 'dom' in r ? (r as any).dom?.x : undefined
+  }
+
+  /** 零基线开关（coord.init.y0，默认开启） */
+  private get coordY0(): boolean {
+    const r = this.coordRule
+    if (typeof r === 'string') return r !== 'radar'
+    if (r === null || typeof r !== 'object') return true
+    return (r as ITsukiyoLocator).init?.y0 !== false
+  }
+
+  private name($n: string): string {
     return this.taskPrefix + $n
   }
 
   constructor($opts: EngineOpts) {
     this.canvas = $opts.canvas
     this.renderer = $opts.renderer
-    this.pointFn = $opts.pointFn
-    this.sealFn = $opts.sealFn ?? defaultSeal
-    this.locator = null
-    this.coordRule = $opts.coord
-    this.spatial = new Grid(DEFAULT_CELL_SIZE, $opts.camera)
-
+    this.camera = $opts.camera
+    this.snapAnim = $opts.snapAnim === true
     this.taskPrefix = $opts.taskPrefix ?? ''
-    this.ownsScheduler = !$opts.scheduler
-    this.scheduler = $opts.scheduler ?? new Scheduler()
+    this.scheduler = $opts.scheduler
+    this.coordRule = $opts.coord
+    this.roadRule = $opts.roadFn ?? undefined
 
-    // retina 初始化（CSS 尺寸供 coord）— UNLAID-OUT canvas (display:none):
-    // Hcvs_retina falls back to the canvas element default (300x150) which
-    // would poison the viewport; keep 0 instead so the layering zero-size
-    // guard defers the layer build until the host layout lands
     if ($opts.canvas.offsetWidth > 0 || $opts.canvas.offsetHeight > 0) {
-      const r = Hcvs_retina($opts.canvas)
-      this.viewWidth = r.cssWidth
-      this.viewHeight = r.cssHeight
+      this.view.w = $opts.canvas.offsetWidth
+      this.view.h = $opts.canvas.offsetHeight
     }
 
-    // interact — sub-layers pass interact:false (zero DOM listeners)
     if ($opts.interact !== false) {
-      this.interact = new Interact($opts.canvas, this.spatial, this.model, this.scheduler)
+      this.interact = new Interact(
+        this.canvas, this.space, this.model, this.camera, this.dirty, this.scheduler, this.taskPrefix,
+      )
+      // 演化幽灵域 — 唯一时钟触点 = commit 回调（既有数据通道重投递）
+      const self = this
+      this.evolution = new Evolution(this.canvas, this.space, this.model, this.camera, {
+        commit: ($raw: any[]): void => { self.data($raw, self.lastDim ?? undefined) },
+        scaleCtx: (): CoordCtx | null => self.lastCtx,
+        // 投影纯重放 — 零 SoA 写（hopPath 复跑模式）
+        // 值通道逆映射由这份投影自身派生——自定义投影免费获得演化
+        locator: (): ITsukiyoLocator | null => {
+          const ctx = self.lastCtx
+          if (!ctx) return null
+          const loc = resolveLocator(self.coordRule, ctx.w, ctx.h, ctx.dY)
+          loc.ctx = { ...ctx, domX: loc.dom?.x ?? ctx.domX }
+          return loc
+        },
+        onStatus: ($cb: ($s: TsuStatus) => void): (() => void) => self.onStatus($cb),
+      })
+      this.toolbar = new TsuToolbar(this.canvas, {
+        status: (): TsuStatus => self.status,
+        statusDetail: () => self.statusDetail(),
+        onStatus: ($cb: ($s: TsuStatus) => void): (() => void) => self.onStatus($cb),
+        evolveSupported: (): boolean => self.evolution?.supported === true,
+        evolving: (): boolean => self.evolving,
+        toggleEvolve: (): void => self.setEvolve(!self.evolving),
+        versions: (): EvoVersion[] => self.evolution?.versions ?? [],
+        rollback: ($i: number): void => self.evolution?.rollback($i),
+        staged: (): boolean => self.evolution?.staged() === true,
+        confirmStaged: (): void => self.evolution?.confirm(),
+        discardStaged: (): void => self.evolution?.discard(),
+      })
+      // 暂存变更推送 — 确认条刷新 绝不轮询
+      this.evolution.onStaged(() => self.toolbar?.onStaged())
     }
 
-    // layering — 依赖全 getter 注入（读取即最新）；子层工厂注入（断循环依赖：
-    // layering 不 import Engine，子层由本工厂创建并共享本引擎的 scheduler —— 单时钟）
-    const engine = this
+    // 状态 — scheduler 状态跃迁时推送 绝不轮询
+    this.scheduler.onState(() => this.pushStatus())
+
+    const self = this
     this.layering = new Layering(
-      this.model, this.spatial, this.dirty, this.scheduler,
-      $opts.canvas,
+      this.model, this.space, this.dirty, this.scheduler, this.camera, this.canvas,
       {
-        viewWidth: () => this.viewWidth,
-        viewHeight: () => this.viewHeight,
-        locator: () => this.locator,
-        closedBounds: () => this.closedBounds,
-        // previous-pass fill area (spatial old-position union) — layering
-        // unions it into the dirty region (ghost-slab fix)
-        oldClosedBounds: () => this.oldClosedBounds,
-        // sub-engine factory — shared main scheduler + prefix isolation +
-        // interact:false; returns a ready engine with data already posted
+        viewWidth: () => self.view.w,
+        viewHeight: () => self.view.h,
         createSubEngine: async ($canvas, $conf, $w, $h) => {
-          const { renderer } = await createRenderer($canvas, '2d')
+          const { renderer, camera } = await createRenderer($canvas, '2d', $conf.sharedCamera ? self.camera : null)
           const sub = new Engine({
             canvas: $canvas,
             renderer,
-            // camera: SHARED only when the layer opts in (sharedCamera:true —
-            // e.g. a background layer that must track the main view);
-            // default = an ISOLATED camera of its own: main-layer zoom/pan
-            // never re-transforms this layer. The sub-engine binds NO DOM
-            // events either way (interact:false) — sharing is render-only
-            camera: $conf.sharedCamera ? $opts.camera : new CoordMapper2D(),
-            pointFn: $conf.point,
-            sealFn: $conf.paths ?? null,
-            coord: $conf.coord,
-            scheduler: engine.scheduler,
+            camera,
+            scheduler: self.scheduler,
+            shapeFn: $conf.shape,
+            roadFn: $conf.paths ?? null,
+            coord: $conf.coord ?? 'Bar',
             taskPrefix: $conf.z > 0 ? `layer${$conf.z}:` : `bg${$conf.z}:`,
             interact: false,
+            snapAnim: true,
           })
-          // the sub-engine hosts NO layers of its own (empty layoutRule —
-          // never nests a default grid under a decoration canvas)
           sub.layers(() => ({ layers: [] }))
-          sub.model.snapAnim = true    // static decoration, no grow channel
-          sub.data($conf.input, $conf.dim ?? undefined)
+          sub.data($conf.input ?? [], $conf.dim)
           sub.resize($w, $h)
           return sub
         },
       },
       this.taskPrefix,
     )
-    this.registerTasks()
+
+    this.registerStages($opts.shapeFn ?? defaultShapeFn, $opts.roadFn ?? defaultRoad, $opts.coord)
+
+    // 视口守卫 — 仅主层（子层搭乘共享时钟与宿主视口）
+    // 离屏 park 回视口 wake
+    if ($opts.interact !== false && typeof IntersectionObserver !== 'undefined') {
+      const self = this
+      this.io = new IntersectionObserver(($es) => {
+        for (const e of $es) {
+          if (e.isIntersecting) {
+            self.offscreen = false
+            self.scheduler.wake()
+          } else {
+            self.offscreen = true
+            self.scheduler.park()
+          }
+          self.pushStatus()
+        }
+      })
+      this.io.observe(this.canvas)
+    }
   }
 
-  private registerTasks(): void {
-    const T = ($n: string) => this.taskName($n)
-    // ① input — 消费 pending（std → loadEls 暂存 → 置位）
-    this.scheduler.add(T('input'), () => {
-      const p = this.pending
-      if (p.raw === null && !p.resized) {
-        this.scheduler.complete(T('input'))
-        return
+  /** 七阶段 — 各消费自己声明的产物 产出自己的 */
+  private registerStages($shapeFn: ShapeFn, $roadFn: RoadFn | RoadRule, $coordRule: CoordRule): void {
+    const T = ($n: string) => this.name($n)
+    const s = this.scheduler
+
+    // ⓪ frame — 外部每帧生产者先于数据链运行
+    s.add(T('frame'), (): true => {
+      // 泄漏守卫 — 脱离 DOM 的画布永久停摆共享时钟
+      if (!this.canvas.isConnected) {
+        this.scheduler.stop()
+        return true
       }
+      this.frameHook?.()
+      return true
+    }, { always: true })
 
-      // resize — 尺寸已同步更新（DOM 事实），此处只置位（coord task 用新尺寸重解析重投影）
-      if (p.resized) {
-        p.resized = false
-        this.model.dataDirty = true
-        this.layering?.notifySubLayers()
+    // 保活 — 帧钩子存在即要求时钟
+    s.addKeepAlive(T('frame'), () => this.frameHook !== null)
+
+    // ① input — 消费信箱并归一化；新数据开启新生长代（复位 anim + 全量重绘）
+    s.add(T('input'), (): Element[] | true | undefined => {
+      const box = this.inbox
+      if (box.raw === null) return undefined
+      const els = std(box.raw, box.dim ?? undefined)
+      this.model.raw = box.raw
+      this.model.elements = els
+      if (box.dim) this.lastDim = box.dim
+      box.raw = null
+      box.dim = null
+      this.dataGen++
+      return els
+    }, { always: true })
+
+    // ② scale — 维度划分 + 域统计；产物即尺度上下文（coord 只做纯投影）
+    //    布防：新数据代或视图变更——否则不产出 下游保留上轮结果
+    s.add(T('scale'), ($els: Element[] | undefined): CoordCtx | undefined => {
+      if (this.dataGen === this.dataSeen && this.viewGen === this.viewSeen) return undefined
+      this.dataSeen = this.dataGen
+      this.viewSeen = this.viewGen
+      const domX = this.coordDomX
+      const y0 = this.coordY0
+      const ctx = scale(this.model, $els ?? this.model.elements, this.view.w, this.view.h, domX, undefined, y0)
+      // kept for the evolution inverse maps (grow replay / projection replay)
+      this.lastCtx = ctx
+      return ctx
+    }, { always: true, after: [T('input')] })
+
+    // ③ shape — 形状声明 → 图形槽（SoA 唯一写入者）
+    //    新数据代在此复位生长通道（槽位数此刻才可知）并全量标脏
+    s.add(T('shape'), ($c: CoordCtx): CoordCtx => {
+      const prev = this.model.count
+      shape(this.model, $shapeFn, $c)
+      if (this.inbox.fresh) {
+        reset(this.model, this.snapAnim)
+        this.dirty.markAll(Math.max(prev, this.model.count))
+        this.inbox.fresh = false
       }
+      return $c
+    }, { after: [T('scale')] })
 
-      // data — std 标准化 + 暂存元素（SoA 写入权归 point）+ 置位
-      if (p.raw !== null) {
-        const elements = std(p.raw, p.dim ?? undefined)
-        this.model.raw = p.raw
-        this.model.loadEls(elements)
-        p.raw = null
-        p.dim = null
+    // ④ coord — 纯投影（scale 已定域）
+    s.add(T('coord'), ($c: CoordCtx): ITsukiyoLocator =>
+      coord(this.model, $coordRule, $c), { after: [T('shape')] })
 
-        this.layering?.notifySubLayers()
-        this.model.dataDirty = true
-      }
+    // ⑤ paths — 目标几何 + 闭合链
+    s.add(T('paths'), ($loc: ITsukiyoLocator): FillRoad | null =>
+      paths(this.model, $loc, $roadFn), { after: [T('coord')] })
 
-      this.scheduler.complete(T('input'))
-    })
+    // ⑥ interact — 常驻 消费上一帧空间索引
+    this.interact?.bind()
 
-    // ② point — 定型（after input）— SoA 图形数组唯一写入者（pointFn 依赖元素数据，必须随数据重定型）
-    this.scheduler.add(T('point'), () => {
-      if (this.model.dataDirty) {
-        pointTask(this.model, this.pointFn)
-      }
-    }, { after: [T('input')] })
+    // ⑦ layering — 常驻 为 draw 打包
+    this.layering?.bind()
 
-    // ③ coord — 单点生产（after point）：解析规则 → 投影 → 挂 ctx（解析前无消费者）；
-    // 始终从不可变原始规则解析（string 拷贝 / locator 复用 / 工厂调用，三分支幂等）
-    this.scheduler.add(T('coord'), () => {
-      if (!this.model.dataDirty) return
-      this.locator = resolveCoordLocator(
-        this.coordRule, this.model, this.viewWidth, this.viewHeight,
-      )
-      // initial view zoom (locator init.zoom) — applied ONCE after the
-      // first successful coord pass, via the SAME zoomBy path as the wheel
-      // zoom (pixel-identical result; gaze compensation around the screen
-      // center keeps the content centered). absent/1 = zero effect on any
-      // other consumer
-      const iz = this.locator?.init?.zoom
-      if (iz != null && iz > 0 && iz !== 1 && !this.zoomApplied) {
-        // wait for a live viewport — the first coord pass may run BEFORE the
-        // first resize lands (vw=0); do NOT burn the one-shot then
-        if (this.viewWidth > 0 && this.viewHeight > 0) {
-          this.zoomApplied = true
-          this.spatial.zoomBy(Math.log(iz), this.viewWidth / 2, this.viewHeight / 2)
-        }
-      }
-    }, { after: [T('point')] })
-
-    // ④ paths — 封闭（after coord）— 接收 locator.ctx 写非位置几何（受 dataDirty 守卫）；
-    // Line/Curve 的跨图形 Δ 连接问询 seal 回调（连接语义唯一事实源）；闭合链派生收编本 task 尾部；
-    // dataDirty 所有退出路径统一清除
-    this.scheduler.add(T('paths'), () => {
-      if (!this.locator || !this.locator.ctx) {
-        this.model.dataDirty = false   // 提前退出也清除，避免无限重算
-        return
-      }
-      if (this.model.dataDirty) {
-        pathsTask(this.model, this.locator, this.sealFn)
-      }
-      this.model.dataDirty = false
-      // closed-path fill layer — lagging sub-task inside the paths stage:
-      // derived (never stored in the SoA) after pathsTask closure; chains
-      // walk the SAME seal Δ links (single chain truth source), so the
-      // fill lane can never disagree with the stroke lane
-      this.closedPaths = buildClosedPaths(this.model, this.sealFn, this.locator.ctx)
-      // fill bounds — union of every chained slot's AABB. The underlay is
-      // clipped to the dirty region now, so the region must cover the whole
-      // fill area or a moved curtain gets cut open at the region edge
-      this.closedBounds = this.computeClosedBounds()
-      // previous-pass slot positions (spatial still holds them — layering
-      // drains it LATER in the same frame): the old fill area, unioned
-      // into the dirty region by layering below
-      this.oldClosedBounds = this.computeSpatialBounds()
-    }, { after: [T('coord')] })
-
-    // ⑤ interact — 常驻（after coord；用上一帧 spatial 索引，一帧滞后设计）
-    if (this.interact) this.interact.bind()
-
-    // ⑥ layering — 常驻（after paths）
-    if (this.layering) this.layering.bind()
-
-    // ⑦ draw — 常驻 flush（after layering）— render 纯读取绘制
-    this.scheduler.add(T('draw'), () => {
-      const layering = this.layering
-      if (!layering) return
-      const big = layering.regionBigDrawing
-      const box = layering.regionDrawing
-      if (big.length === 0 || !box) return
-      // 矩阵与视线同一次取景产出（三方同源）；underlay = closed-path fill layer
-      this.renderer.flush(
-        this.model, box, big, this.spatial.cameraMatrix, this.spatial.cameraSight,
-        this.fillColor === null ? null : { paths: this.closedPaths, color: this.fillColor },
-      )
+    // ⑧ draw — flush + 生长推进（绘制与生长同一节奏）
+    s.add(T('draw'), ($batch: RenderBatch | undefined): true => {
+      if (!$batch) return true
+      this.renderer.flush(this.model, $batch)
+      // 状态以画面已呈现的为准（done 与版本快照落在最终 flush 之后）
+      this.pushStatus()
+      // 生长末拍的标脏在 layering drain 之后——时钟欠一帧补 flush
+      // tick 中段 wake 订帧 自停让位于已订帧
+      if (grow(this.model, this.dirty)) this.scheduler.wake()
+      return true
     }, { after: [T('layering')], phase: 'draw' })
 
-    this.taskNames = ['input', 'point', 'coord', 'paths', 'layering', 'draw'].map($n => T($n))
+    // 保活 — 生长还欠拍（snap 图一次到 1）；键在 draw 阶段名上 detach 随阶段丢弃
+    s.addKeepAlive(T('draw'), (): boolean => {
+      const anim = this.model.anim
+      for (let _ξ = 0; _ξ < this.model.count; _ξ++) if (anim[_ξ] < 1) return true
+      return false
+    })
   }
 
-  // —— 公共 API ——
+  // —— public API ——
 
-  /** closed-path chains (read-only view) — derived at the tail of the paths stage */
-  get closedPathsView (): readonly Path2D[] {
-    return this.closedPaths
+  /** 绘制状态 — 变更即推送 绝不轮询：idle 无数据 / growing 投递排队或生长中 / done 画完 / paused 停摆或离屏 */
+  get status(): TsuStatus {
+    if (this.scheduler.state === 'halted' || this.offscreen) return 'paused'
+    if (this.model.count === 0) return 'idle'
+    if (this.inbox.raw !== null) return 'growing'
+    const anim = this.model.anim
+    for (let _ξ = 0; _ξ < this.model.count; _ξ++) if (anim[_ξ] < 1) return 'growing'
+    return 'done'
   }
 
-  /** fill-area AABB union (null when no chains) — layering consumes it */
-  get closedBoundsView (): Bounds | null {
-    return this.closedBounds
+  /** 状态卡负载 — 调度器状态 / 槽位数 / 生长中数 */
+  statusDetail(): { status: TsuStatus; sched: string; slots: number; growing: number } {
+    let _growing = 0
+    const anim = this.model.anim
+    for (let _ξ = 0; _ξ < this.model.count; _ξ++) if (anim[_ξ] < 1) _growing++
+    return { status: this.status, sched: this.scheduler.state, slots: this.model.count, growing: _growing }
   }
 
-  /** AABB union over every slot that participates in a closed chain —
-   *  computed once per paths pass (model.dataDirty window) */
-  private computeClosedBounds(): Bounds | null {
-    const m = this.model
-    if (this.closedPaths.length === 0 || m.count === 0) return null
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    const buf: Bounds = [[0, 0], [0, 0]]
-    for (let i = 0; i < m.count; i++) {
-      const [mn, mx] = m.aabbInto(i, buf)
-      if (mn[0] < minX) minX = mn[0]
-      if (mn[1] < minY) minY = mn[1]
-      if (mx[0] > maxX) maxX = mx[0]
-      if (mx[1] > maxY) maxY = mx[1]
+  /** 注册状态监听（变更即推送）；返回注销函数 */
+  onStatus($cb: ($s: TsuStatus) => void): () => void {
+    this.statusCbs.add($cb)
+    $cb(this.status)
+    return () => { this.statusCbs.delete($cb) }
+  }
+
+  private pushStatus(): void {
+    const s = this.status
+    if (s === this.lastStatus) return
+    this.lastStatus = s
+    for (const cb of this.statusCbs) cb(s)
+  }
+
+  /** 演化模式 — interact 与幽灵域互斥绑定；退出即丢弃暂存 */
+  setEvolve($on: boolean): void {
+    if ($on === this.evolving) return
+    if ($on && this.evolution?.supported !== true) return
+    this.evolving = $on
+    if ($on) {
+      // 演化期禁用相机轨道 / 缩放 / 悬停锁定
+      this.pause('interact')
+      this.evolution?.bind()
+    } else {
+      this.evolution?.discard()
+      this.evolution?.unbind()
+      this.resume('interact')
     }
-    if (!Number.isFinite(minX)) return null
-    return [[minX, minY], [maxX, maxY]]
   }
 
-  /** AABB union over the PREVIOUS pass's slot positions — same member set
-   *  and union logic as computeClosedBounds, but sourced from the spatial
-   *  index (the engine's old-position store) instead of the current model;
-   *  computed at the paths-stage tail, before layering drains spatial */
-  private computeSpatialBounds(): Bounds | null {
-    if (this.closedPaths.length === 0 || this.model.count === 0) return null
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    for (let i = 0; i < this.model.count; i++) {
-      const old = this.spatial.aabbOf(i)   // null = born this pass — skip
-      if (!old) continue
-      const [mn, mx] = old
-      if (mn[0] < minX) minX = mn[0]
-      if (mn[1] < minY) minY = mn[1]
-      if (mx[0] > maxX) maxX = mx[0]
-      if (mx[1] > maxY) maxY = mx[1]
-    }
-    if (!Number.isFinite(minX)) return null
-    return [[minX, minY], [maxX, maxY]]
+  /** 每帧生产者钩子 — 由引擎时钟驱动 而非调用方 */
+  onFrame($cb: (() => void) | null): this {
+    this.frameHook = $cb
+    return this
   }
 
-  /** register the closed-path fill color (paths-stage closed chains are filled
-   *  with it under the strokes every frame); null = disable the underlay */
-  setFill ($color: number | null): void {
-    this.fillColor = $color
-  }
-
-  /** register the layering layout callback — each layer = a full sub-engine
-   *  on its own canvas (z<0 below / z>0 above the main canvas, sorted by z);
-   *  null (or never called) = the default grid background layer */
-  layers ($fn: LayoutFn | null): void {
+  layers($fn: LayoutFn | null): void {
     this.layering?.layers($fn)
   }
 
-  /** 注入数据 — 暂存 pending，下一 tick 消费（SoA 写入全在 tick 内） */
+  /** 投递数据 — 暂存 下一 tick 消费（唤醒时钟） */
   data($raw: any[], $dim?: DimConf): this {
-    this.pending.raw = $raw
-    this.pending.dim = $dim ?? null
-    this.scheduler.reset(this.taskName('input'))
+    // 演化暂存的锚点即将变化——丢弃暂存（投递的数据获胜）
+    this.evolution?.discard()
+    this.inbox.raw = $raw
+    this.inbox.dim = $dim ?? null
+    this.inbox.fresh = true
+    this.dirty.markFull()
+    this.scheduler.wake()
+    this.pushStatus()
     return this
   }
 
-  /** 尺寸 — 物理同步设（DOM 事实），数据流走 pending（下一 tick 生效） */
+  /** 尺寸 — DOM 事实立即生效 流程随下一 tick */
   resize($w: number, $h: number): this {
-    // canvas is a REPLACED element (intrinsic 300x150): a CSS inset stretch
-    // does NOT size it — the explicit inline width/height below IS the
-    // layout owner. Always write it (the value flows from the caller's
-    // DOM-derived size, never a poisoned canvas self-read)
     this.canvas.style.width = `${$w}px`
     this.canvas.style.height = `${$h}px`
-    // explicit cssSize — the style write above has NOT flushed into
-    // offsetWidth yet (same synchronous frame), so the retina guard would
-    // wrongly wipe it; the caller's DOM-derived size IS the CSS basis
-    const r = Hcvs_retina(this.canvas, undefined, undefined, [$w, $h])
-    this.viewWidth = r.cssWidth
-    this.viewHeight = r.cssHeight
-    this.pending.resized = true
-    this.scheduler.reset(this.taskName('input'))
+    const r = Hcvs_retina(this.canvas, $w, $h)
+    this.view.w = r.cssWidth
+    this.view.h = r.cssHeight
+    this.viewGen++
+    this.dirty.markFull()
+    this.layering?.notify()
+    this.scheduler.wake()
     return this
   }
 
-  /** 幂等暂停 — 移除 task + 解绑 */
-  pause($name: string): this {
-    if (this.paused.has($name)) return this
-
-    if ($name === 'interact' && this.interact) {
-      this.interact.unbind()
-      this.paused.set($name, this.interact)
-    }
-    if ($name === 'layering' && this.layering) {
-      this.layering.unbind()
-      this.paused.set($name, this.layering)
-    }
+  /** 解绑常驻模块（幂等） */
+  pause($name: 'interact' | 'layering'): this {
+    ($name === 'interact' ? this.interact : this.layering)?.unbind()
     return this
   }
 
-  /** 幂等恢复 — 重 bind */
-  resume($name: string): this {
-    const mod = this.paused.get($name)
-    if (!mod) return this
-
-    mod.bind()
-    this.paused.delete($name)
+  /** 重绑常驻模块（幂等） */
+  resume($name: 'interact' | 'layering'): this {
+    ($name === 'interact' ? this.interact : this.layering)?.bind()
     return this
   }
 
-  /** 启动引擎 — 仅自有 scheduler 才启 rAF（共享子层由主层驱动） */
-  start(): this {
-    if (this.ownsScheduler) this.scheduler.start()
-    return this
-  }
-
-  /** detach — 从共享 scheduler 卸载本引擎全部 task（子层暂停/销毁唯一正道；
-   *  不停 rAF —— 时钟归主层所有） */
+  /** 卸载全部阶段（连同保活探针） */
   detach(): void {
-    for (const $n of this.taskNames) this.scheduler.remove($n)
+    for (const $n of STAGES) this.scheduler.remove(this.name($n))
   }
 
-  /** 停止引擎 — 自有 scheduler 停 rAF；同时销毁 layering 子分层（释放各层 canvas 与 task） */
+  /** 停机 — 完整自拆：视口守卫 常驻模块 阶段（时钟属 Tsukiyo） */
   stop(): this {
-    this.layering?.destroy()
-    if (this.ownsScheduler) this.scheduler.stop()
+    this.io?.disconnect()
+    this.io = null
+    this.evolving = false
+    this.evolution?.unbind()
+    this.toolbar?.destroy()
+    this.toolbar = null
+    this.evolution = null
+    this.interact?.unbind()
+    this.layering?.unbind()
+    this.detach()
+    this.pushStatus()
     return this
   }
 }

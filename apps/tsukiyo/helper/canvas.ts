@@ -1,71 +1,19 @@
 /**
- * canvas — Canvas API 封装：画笔上下文、基本图形、离屏画布、
- * 视网膜初始化（CSS↔物理像素）、批渲染分组器
+ * canvas — canvas 视觉落地：把 CSS 几何、层叠顺序与视口变换
+ * 变成真实 canvas 像素的唯一位置
  */
-import type { Bounds, Vec2 } from '../yomi'
-import { Prim } from '../yomi'
 import type { TsuModel } from '../m/model'
 import { DPR_MAX } from './const'
 
-// —— 画笔上下文 ——
-
-/** save → 执行 → restore 包裹 */
-export function Hcvs_ppCtx($ctx: CanvasRenderingContext2D, _call_: Function = () => {}, ...args: any[]) {
-  $ctx.save()
-  _call_ && _call_($ctx, ...args)
-  $ctx.restore()
-}
-
-export function Hcvs_draw($ctx: CanvasRenderingContext2D, $options: {
-    drawApi: Function
-    styles?: CanvasPathDrawingStyles
-}) {
-    const { drawApi, styles } = $options
-    $ctx.beginPath()
-    drawApi()
-    if (styles) {
-        Object.entries(styles).forEach(([stk, stv]) => {
-            if (stk in $ctx) ($ctx as any)[stk] = stv
-        })
-        $ctx.fill()
-    }
-    $ctx.stroke()
-}
-
-export function Hcvs_rect($ctx: CanvasRenderingContext2D, $args: { x: number, y: number, w: number, h: number }) {
-    const { x, y, w, h } = $args
-    Hcvs_draw($ctx, { drawApi: () => $ctx.rect(x, y, w, h) })
-}
-
-export function Hcvs_arc($ctx: CanvasRenderingContext2D, $args: { x: number, y: number, r: number, startAng: number, endAngle: number }) {
-    const { x, y, r, startAng, endAngle } = $args
-    Hcvs_draw($ctx, { drawApi: () => $ctx.arc(x, y, r, startAng, endAngle) })
-}
-
-export function Hcvs_line($ctx: CanvasRenderingContext2D, $args: { pths: Vec2[] }) {
-    const { pths } = $args
-    Hcvs_draw($ctx, {
-        drawApi: () => {
-            pths.forEach($vec => {
-                const [x, y] = $vec
-                $ctx.lineTo(x, y)
-            })
-        }
-    })
-}
-
-/** 离屏画布 */
-export const Hcvs_offscreen = ($w: number, $h: number, $draw: (ctx: CanvasRenderingContext2D) => void) => {
-  const c = document.createElement('canvas')
-  c.width = $w; c.height = $h
-  $draw(c.getContext('2d')!)
-  return c
-}
-
-// —— 视网膜初始化 + 视线基准合成 ——
-
-export function Hcvs_getDpr(): number {
-  return Math.min(window.devicePixelRatio || 1, DPR_MAX)
+/** 子层 canvas 摆放 — 子层画布的层叠规则 */
+export interface HcvsPlace {
+  z: number
+  /** 'host' = 贴合主 canvas 宿主盒（inset:0） */
+  size?: 'host'
+  /** 主 canvas — 插入与对齐的参照 */
+  main: HTMLCanvasElement
+  /** 待摆放的 canvas（新建插入或既有重摆） */
+  canvas?: HTMLCanvasElement
 }
 
 export interface RetinaResult {
@@ -75,113 +23,117 @@ export interface RetinaResult {
   deviceWidth: number
   deviceHeight: number
   changed: boolean
+  canvas: HTMLCanvasElement
 }
 
-/** 六元视线仿射 [a,b,c,d,e,f] — CoordMapper2D.clipMatrix 的消费形态 */
-export type ViewAffine = Float32Array
+export function Hcvs_getDpr(): number {
+  return Math.min(window.devicePixelRatio || 1, DPR_MAX)
+}
 
 /**
- * 视觉基准合成 — DPR 尺寸基准 × 视线仿射：物理像素 = CSS×DPR 写入 canvas 尺寸，
- * setTransform(dpr·a..dpr·f) 基准×视线一步合成；view 缺省即纯基准 [1,0,0,1,0,0]，
- * 六元仿射（2D gazeM）无条件合成，16 元剪裁矩阵（3D）无 2D ctx 语义跳过。
- * SoA x/y 统一 CSS 坐标系（与 e.offsetX/offsetY 一致）。
+ * Hcvs_retina — canvas 视觉落地的唯一入口：建画布 + 层叠摆放（z 序 / host 贴合）
+ * + CSS 尺寸 + DPR×视口变换SoA x/y 保持 CSS 空间（与 e.offsetX/offsetY 同空间）
+ * $view — 六元 2D 仿射 [a,b,c,d,e,f]；十六元 3D 裁剪矩阵无 2D ctx 意义故跳过
  */
 export function Hcvs_retina(
   $canvas: HTMLCanvasElement,
-  $dpr?: number,
-  $view?: ViewAffine | null,
-  $cssSize?: [number, number],
+  $w: number,
+  $h: number,
+  $view?: Float32Array | null,
+  $place?: HcvsPlace | null,
 ): RetinaResult {
-  const dpr = $dpr ?? Hcvs_getDpr()
+  const dpr = Hcvs_getDpr()
 
-  // explicit caller size — the caller owns the DOM truth (e.g. the layer
-  // resize path writes style.width/height in the SAME synchronous frame,
-  // so offsetWidth has NOT flushed to the new value yet and the guard
-  // below would wrongly wipe the explicit style). Use it as the CSS basis
-  // and skip both the guard and the offsetWidth self-read.
-  if ($cssSize) {
-    const [w, h] = $cssSize
-    return retinaApply($canvas, dpr, $view, Math.floor(w), Math.floor(h))
-  }
-
-  // un-laid-out guard — offsetWidth 0 (display:none era) must NOT fall
-  // back to the 300x150 canvas default: writing that into style.width
-  // would OVERRIDE a consumer CSS inset stretch and lock the canvas at
-  // 300x150 forever. Clear any previously poisoned explicit size and
-  // skip; the next laid-out call heals the canvas via CSS
-  if ($canvas.offsetWidth <= 0 || $canvas.offsetHeight <= 0) {
-    if ($canvas.style.width || $canvas.style.height) {
-      $canvas.style.width = ''
-      $canvas.style.height = ''
+  // 摆放 — 相对主 canvas 的绝对层叠
+  if ($place) {
+    const s = $canvas.style
+    s.position = 'absolute'
+    s.pointerEvents = 'none'
+    s.zIndex = String($place.z)
+    if ($place.size === 'host') {
+      s.inset = '0'
+    } else {
+      s.left = `${$place.main.offsetLeft}px`
+      s.top = `${$place.main.offsetTop}px`
     }
-    return { dpr, cssWidth: 0, cssHeight: 0, deviceWidth: 0, deviceHeight: 0, changed: false }
+    const parent = $place.main.parentElement
+    if (parent && $canvas.parentElement !== parent) {
+      if ($place.z < 0) parent.insertBefore($canvas, $place.main)
+      else parent.insertBefore($canvas, $place.main.nextSibling)
+    }
   }
 
-  // layout size (offsetWidth/offsetHeight) — immune to CSS transform scaling,
-  // unlike getBoundingClientRect (a mid-animation scale would poison the
-  // device size and then lock it into style, forever wrong)
-  return retinaApply($canvas, dpr, $view, Math.floor($canvas.offsetWidth), Math.floor($canvas.offsetHeight))
-}
-
-/** shared tail of Hcvs_retina — device-size sync + base x view transform */
-function retinaApply(
-  $canvas: HTMLCanvasElement,
-  dpr: number,
-  $view: ViewAffine | null | undefined,
-  cssW: number,
-  cssH: number,
-): RetinaResult {
-  const devW = Math.floor(cssW * dpr)
-  const devH = Math.floor(cssH * dpr)
-
-  const changed = $canvas.width !== devW || $canvas.height !== devH
-  if (changed) {
-    $canvas.width = devW
-    $canvas.height = devH
+  // CSS 尺寸 — 显式尺寸即布局所有者（replaced 元素不会仅凭 CSS 拉伸）
+  // 0×0 盒不写——否则会把画布锁死直到宿主布局落地
+  const cssW = Math.max(0, Math.floor($w))
+  const cssH = Math.max(0, Math.floor($h))
+  if (cssW > 0 && cssH > 0 && $place?.size !== 'host') {
     $canvas.style.width = `${cssW}px`
     $canvas.style.height = `${cssH}px`
   }
 
-  // 基准×视线合成（六元仿射或缺省；16 元剪裁矩阵跳过）
-  if (!$view || $view.length === 6) {
-    const ctx = $canvas.getContext('2d')
-    if (ctx) {
-      const va = $view
-      const a = va ? va[0] : 1, b = va ? va[1] : 0
-      const c = va ? va[2] : 0, dd = va ? va[3] : 1
-      const e = va ? va[4] : 0, f = va ? va[5] : 0
-      ctx.setTransform(dpr * a, dpr * b, dpr * c, dpr * dd, dpr * e, dpr * f)
-    }
+  const devW = Math.floor(cssW * dpr)
+  const devH = Math.floor(cssH * dpr)
+  const changed = $canvas.width !== devW || $canvas.height !== devH
+  if (changed) {
+    $canvas.width = devW
+    $canvas.height = devH
   }
 
-  return { dpr, cssWidth: cssW, cssHeight: cssH, deviceWidth: devW, deviceHeight: devH, changed }
+  // 基 × view — 单次 setTransform 绝不累积
+  const ctx = $canvas.getContext('2d')
+  if (ctx && (!$view || $view.length === 6)) {
+    const a = $view ? $view[0] : 1
+    const b = $view ? $view[1] : 0
+    const c = $view ? $view[2] : 0
+    const d = $view ? $view[3] : 1
+    const e = $view ? $view[4] : 0
+    const f = $view ? $view[5] : 0
+    ctx.setTransform(dpr * a, dpr * b, dpr * c, dpr * d, dpr * e, dpr * f)
+  }
+
+  return { dpr, cssWidth: cssW, cssHeight: cssH, deviceWidth: devW, deviceHeight: devH, changed, canvas: $canvas }
 }
 
-// —— 批渲染分组器 ——
+// —— 批分组：连续 run 合并（零每帧分配）——
+// 数据序 = 绘制序 = z 序——相邻同形状的槽合并成一批、形状一变即开新批
+// 全局按形状归桶会打乱数据序（后画的柱子盖住先画的虚线）故不采用
 
-/** 按 Prim 分桶 index 列表 — 同类型共享绘制路径一批画 */
 export interface Batch {
-  prim: Prim
+  id: number
   indices: number[]
   count: number
 }
 
+/** 复用批对象池 —— 一次 flush 结束即归还、零 GC */
+const batchPool: Batch[] = []
+let _batchUsed = 0
+
+function takeBatch(): Batch {
+  let _b = batchPool[_batchUsed]
+  if (!_b) _b = batchPool[_batchUsed] = { id: 0, indices: [], count: 0 }
+  _batchUsed++
+  _b.indices.length = 0
+  _b.count = 0
+  return _b
+}
+
+const out: Batch[] = []
+
+/** 连续 run 分组 — 相邻同形状合并为一批；返回的数组与 indices 均为复用缓冲 */
 export function Hcvs_batch($model: TsuModel, $els: number[]): Batch[] {
-  const buckets: Map<Prim, number[]> = new Map()
-
-  for (const i of $els) {
-    const t = $model.type[i] as Prim
-    let _bucket = buckets.get(t)
-    if (!_bucket) {
-      _bucket = []
-      buckets.set(t, _bucket)
+  out.length = 0
+  _batchUsed = 0
+  let _cur: Batch | null = null
+  for (const ξ of $els) {
+    const id = $model.id[ξ]
+    if (!_cur || _cur.id !== id) {
+      _cur = takeBatch()
+      _cur.id = id
+      out.push(_cur)
     }
-    _bucket.push(i)
+    _cur.indices.push(ξ)
+    _cur.count++
   }
-
-  const result: Batch[] = []
-  for (const [prim, indices] of buckets) {
-    result.push({ prim, indices, count: indices.length })
-  }
-  return result
+  return out
 }

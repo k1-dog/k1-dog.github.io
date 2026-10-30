@@ -12,10 +12,14 @@ DefaultTheme.enhanceApp = async ({ app, router, siteData }) => {
     app.config.globalProperties.$M9MsgX = K1M9UI.M9MsgX
     app.config.globalProperties.$M9DragHelperX = K1M9UI.M9DragHelperX
     app.config.globalProperties.$K1TsukiyoX = K1M9UI.K1TsukiyoX
-    app.config.globalProperties.$K1ShapesX = K1M9UI.Shapes
-    app.config.globalProperties.$K1RgbaX = K1M9UI.rgba
-    app.config.globalProperties.$K1PrimX = K1M9UI.K1PrimX
+    app.config.globalProperties.$K1ShapesX = K1M9UI.K1ShapesX
+    app.config.globalProperties.$K1RgbaX = K1M9UI.K1RgbaX
+    app.config.globalProperties.$K1GrowX = K1M9UI.K1GrowX
+    app.config.globalProperties.$K1PenX = K1M9UI.K1PenX
+    app.config.globalProperties.$K1SpecOfX = K1M9UI.K1SpecOfX
     app.config.globalProperties.$K1AxisX = K1M9UI.K1AxisX
+    app.config.globalProperties.$K1RadarX = K1M9UI.K1RadarX
+    app.config.globalProperties.$K1DrawMugenX = K1M9UI.K1DrawMugenX
 
     K1M9UI.M9InstallX(app)
 

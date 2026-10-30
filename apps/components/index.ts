@@ -54,7 +54,11 @@ const vue3Install = ($app: App) => {
 export const M9MsgX = M9Msg
 export const M9PopoverControllerX = M9PopoverController
 export const M9DragX = M9Drag
-export { Tsukiyo as K1TsukiyoX, Shapes, rgba, Prim as K1PrimX, Axis as K1AxisX } from '../tsukiyo'
+export {
+  Tsukiyo as K1TsukiyoX, Shapes as K1ShapesX, Grow as K1GrowX, rgba as K1RgbaX,
+  Pen as K1PenX, specOf as K1SpecOfX, Axis as K1AxisX, Radar as K1RadarX,
+  drawMugen as K1DrawMugenX,
+} from '../tsukiyo'
 
 export const M9InstallX = vue3Install
 

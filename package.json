@@ -21,11 +21,6 @@
   ],
   "author": "傲雪凌寒小七罪",
   "license": "ISC",
-  "pnpm": {
-    "overrides": {
-      "vite": "5.4.19"
-    }
-  },
   "dependencies": {
     "@kego/m9-k1-ui": "^0.0.8",
     "core-js": "^3.6.5",

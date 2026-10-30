@@ -1,220 +1,128 @@
 /**
- * coord — 定位器：单遍扫描 value[]/x 值域拿 min/max/sum → 轴投影纯位置 x/y
- * （所有原语统一，零 GAP 偏移）→ CoordCtx 供 paths/layering 复用；非位置几何归 paths，动画缩放归 render。
- * coordTask 是 dataDirty 触发的一次性任务（engine 在 paths 后清 dataDirty）。
- * Axis 组合子（轴原语）：坐标系 = 两根轴（域 kind + 投影 at）组装，不是独立类。
- * 内置 preset：'Bar'/'Line'/'polar'/'radar' 仅是预制组合（builtin 查表），可通过 resolveCoordLocator 传入自定义定位器或工厂。
+ * v/coord — coord 阶段：纯投影；scale 已产出 CoordCtx（值域 / 维度数）、
+ * 本阶段只做逐槽投影（x/y = proj(el, ctx, iX, iY)）与锚点归一（形状声明 anchor 时换算左上角）
+ * 零标脏、零动画、零域扫描
  */
-import type { AxisRule, CoordCtx, CoordRule, Element, ITsukiyoLocator } from '../yomi'
-import { Prim } from '../yomi'
+import type { CoordCtx, CoordRule, ITsukiyoLocator, Proj } from '../yomi'
 import type { TsuModel } from '../m/model'
-import { Hm_mapRange } from '../helper/maths'
-import { ARC_START_ANGLE, GEO_SLOTS_EACH_ELEM, RADAR_LABEL_PAD, TAU, VALUE_MAX_EXPAND } from '../helper/const'
+import { Hm_map } from '../helper/maths'
+import { ARC_START_ANGLE, GEO_SLOTS_EACH_ELEM, RADAR_LABEL_PAD, TAU } from '../helper/const'
 
-
-/** 雷达有效半径 = min(w,h)/2 − 标签位（单点定义，grid/coord 同源） */
-export function radarRadius($w: number, $h: number): number {
+/** radar 有效半径（与 grid 共用同一来源） */
+export function radarR($w: number, $h: number): number {
   return Math.min($w, $h) / 2 - RADAR_LABEL_PAD
 }
 
-// —— 轴切片（预组装原语）——
+/** 单个 band 区间：序号 k / 总数 n → 归一化 [0,1] */
+export type Band = (k: number, n: number) => [number, number]
 
-/** 列中心 X — 与网格竖线/标签对齐（cat 域） */
-function cartesianColX($el: Element, $dimX: number, $dimY: number, $ctx: CoordCtx): number {
-  const colW = $ctx.width / Math.max(1, $ctx.dimXCount)
-  return $dimX * colW + colW / 2
-}
-
-/** 基线 Y — value 归一化 [0,height] 底部对齐（Rect 约定 y 为顶部） */
-function cartesianBaselineY($el: Element, $dimX: number, $dimY: number, $ctx: CoordCtx): number {
-  const normalized = Hm_mapRange($el.value, $ctx.valueMin, $ctx.valueMax, 0, $ctx.height)
-  return $ctx.height - normalized
-}
-
-// —— Axis 组合子：轴原语工厂（kind + at 内聚单对象）——
-/** Axis 配件包 — 预组装轴切片 + 组合子（图表类型 = 轴组合，非独立类） */
-export interface AxisKit {
-  catX: AxisRule
-  baseY: AxisRule
-  polarX: AxisRule
-  polarY: AxisRule
-  radarX: AxisRule
-  radarY: AxisRule
-  x: ($fX?: string) => AxisRule
-  y: ($fY?: string) => AxisRule
-  xy: ($fX?: string, $fY?: string) => ITsukiyoLocator
-}
-export const Axis: AxisKit = {
-  /** 分类 X 轴 — 列中心等距（Bar/Line preset） */
-  catX: { kind: 'cat', at: cartesianColX },
-  /** 基线 Y 轴 — value 归一化高度（Bar/Line preset） */
-  baseY: { kind: 'num', at: cartesianBaselineY },
-  /** 极坐标 X — 恒画布中心（polar preset） */
-  polarX: { kind: 'cat', at: ($_el: Element, $_dimX: number, $_dimY: number, $ctx: CoordCtx) => $ctx.width / 2 },
-  /** 极坐标 Y — 恒画布中心（polar preset） */
-  polarY: { kind: 'cat', at: ($_el: Element, $_dimX: number, $_dimY: number, $ctx: CoordCtx) => $ctx.height / 2 },
-  /** 雷达 X — 按 dimY 分配角度 + value 归一化半径（radar preset） */
-  radarX: { kind: 'cat', at: ($el: Element, $dimX: number, $dimY: number, $ctx: CoordCtx) => {
-    const angle = ARC_START_ANGLE + ($dimY / Math.max(1, $ctx.dimYCount)) * TAU
-    const r = Hm_mapRange($el.value, 0, $ctx.valueMax, 0, radarRadius($ctx.width, $ctx.height))
-    return $ctx.width / 2 + Math.cos(angle) * r
-  } },
-  /** 雷达 Y — 按 dimY 分配角度 + value 归一化半径（radar preset） */
-  radarY: { kind: 'cat', at: ($el: Element, $dimX: number, $dimY: number, $ctx: CoordCtx) => {
-    const angle = ARC_START_ANGLE + ($dimY / Math.max(1, $ctx.dimYCount)) * TAU
-    const r = Hm_mapRange($el.value, 0, $ctx.valueMax, 0, radarRadius($ctx.width, $ctx.height))
-    return $ctx.height / 2 + Math.sin(angle) * r
-  } },
-
-  /** 数值 X 轴原语 — 字段值连续线性映射 [0,width]；$fX 缺省取 el[el.dimX]（默认 dimX 字段） */
-  x: ($fX?: string): AxisRule => ({
-    kind: 'num',
-    field: $fX,
-    at: ($el: Element, $_dimX: number, $_dimY: number, $ctx: CoordCtx) =>
-      Hm_mapRange($el[$fX ?? $el.dimX], $ctx.xMin ?? 0, $ctx.xMax ?? 1, 0, $ctx.width),
-  }),
-  /** 数值 Y 轴原语 — 字段值连续线性映射 [height,0]（Y 翻转）；$fY 缺省取 el.value */
-  y: ($fY?: string): AxisRule => ({
-    kind: 'num',
-    field: $fY,
-    at: ($el: Element, $_dimX: number, $_dimY: number, $ctx: CoordCtx) =>
-      $ctx.height - Hm_mapRange($el[$fY ?? 'value'], $ctx.valueMin, $ctx.valueMax, 0, $ctx.height),
-  }),
-
-  /** 散点组合子 — 双数值连续轴（X 字段可选，缺省取 el[el.dimX]；Y 字段可选，缺省取 el.value） */
-  xy: ($fX?: string, $fY?: string): ITsukiyoLocator => ({
-    x: Axis.x($fX),
-    y: Axis.y($fY),
-    grid: 'cartesian',
-    init: { y0: false },   // 连续值域 — 不打 0 基线，用真实 min/max
-  }),
-}
-
-// —— 内置组合表（预组装语法糖：一行一个 preset）——
-const builtin: Record<string, ITsukiyoLocator> = {
-  Bar: {
-    x: Axis.catX,
-    y: Axis.baseY,
-    grid: 'cartesian',
+export const Band = {
+  /** 等分 — 默认 */
+  even: (($k: number, $n: number): [number, number] => [$k / $n, ($k + 1) / $n]) as Band,
+  /** 权重不等分 — 权重数组一次声明解决"不同组间距不同" */
+  w: ($ws: number[]): Band => {
+    const sum = $ws.reduce(($a, $b) => $a + $b, 0) || 1
+    const acc = [0]
+    for (const w of $ws) acc.push(acc[acc.length - 1] + w)
+    return ($k: number) => [acc[$k] / sum, acc[$k + 1] / sum]
   },
-  Line: {
-    x: Axis.catX,
-    y: Axis.baseY,
-    grid: 'cartesian',
-  },
-  polar: {
-    x: Axis.polarX,
-    y: Axis.polarY,
-    grid: 'polar',
-    init: { θ: ARC_START_ANGLE },
-  },
-  radar: {
-    x: Axis.radarX,
-    y: Axis.radarY,
-    grid: 'radar',
-  },
+  /** 极坐标角度带 — 玫瑰 / 极坐标分组 */
+  polar: (($k: number, $n: number): [number, number] => [($k / $n) * TAU, (($k + 1) / $n) * TAU]) as Band,
 }
 
-/** coordTask — dataDirty 触发一次性任务：ruler（值域单遍扫描）+ 轴投影纯位置 x/y，CoordCtx 供 paths 复用 */
-export function coordTask($model: TsuModel, $locator: ITsukiyoLocator, $viewWidth: number, $viewHeight: number): CoordCtx | null {
-  if (!$model.dataDirty) return null
+/**
+ * 轴投影 — 五个纯函数、覆盖全部内置布局
+ * 任何自定义定位直接写 `(el, ctx, iX, iY) => number`、无需新增组合子
+ */
+export const Axis: Record<'band' | 'v' | 'x' | 'angle' | 'rad' | 'cx' | 'cy', Proj> = {
+  /** 分类轴 — dY > 1 时列内自动分组（零配置） */
+  band: ($_el, $c, $iX, $iY) =>
+    (($iX + ($c.dY > 1 ? ($iY + 0.5) / $c.dY : 0.5)) / $c.dX) * $c.w,
 
-  // 单遍扫描 min / max / sum（polar 角度分配需 sum）；x 数值域顺带统计（x.kind='num'）
-  let _vMin = Infinity
-  let _vMax = -Infinity
-  let _vSum = 0
-  let _xMin = Infinity
-  let _xMax = -Infinity
-  const xAxis = $locator.x
-  for (let _i = 0; _i < $model.count; _i++) {
-    const v = $model.value[_i]
-    if (v < _vMin) _vMin = v
-    if (v > _vMax) _vMax = v
-    _vSum += v
-    if (xAxis.kind === 'num') {
-      const el = $model.elements[$model.src[_i]]
-      if (!el) continue
-      const xv = Number(el[xAxis.field ?? el.dimX])
-      if (xv < _xMin) _xMin = xv
-      if (xv > _xMax) _xMax = xv
-    }
-  }
-  if (_vMin === _vMax) { _vMax = _vMin + 1 }
-  if (_vSum <= 0) _vSum = 1
-  if (_xMin === _xMax) { _xMax = _xMin + 1 }   // X 单值保护
+  /** 值轴 — 从底边向上 */
+  v: ($el, $c) => $c.h - Hm_map($el.value, $c.v0, $c.v1, 0, $c.h),
 
-  // Y 值域归一：init.y0（缺省 true）→ 0 起 + valueMax 上扩 1.2×（柱/线/雷达留白；散点 init.y0=false 用真实 min/max）
-  const y0 = $locator.init?.y0 !== false
-  if (y0) {
-    _vMin = 0
-    _vMax *= VALUE_MAX_EXPAND
-  }
+  /**
+   * 数值 x 轴 — 只接受显式 dom 声明：读 `el[ctx.domX]` 并在 `[x0, x1]` 上线性投影
+   * 未声明 dom.x 时不做任何猜测（返回 NaN）、由 resolveLocator 给出告警：
+   * 数值轴必须写 `.coord({ x: Axis.x, dom: { x: 'field' } })`
+   */
+  x: ($el, $c) => {
+    if ($c.domX === undefined || $c.x0 === undefined || $c.x1 === undefined) return NaN
+    const raw = Number($el[$c.domX])
+    return Number.isFinite(raw) ? Hm_map(raw, $c.x0, $c.x1, 0, $c.w) : NaN
+  },
 
-  const ctx: CoordCtx = {
-    width: $viewWidth,
-    height: $viewHeight,
-    count: $model.count,
-    dimXCount: $model.dimXMap.size || 1,
-    dimYCount: $model.dimYMap.size || 1,
-    valueMin: _vMin,
-    valueMax: _vMax,
-    valueSum: _vSum,
-    xMin: xAxis.kind === 'num' ? _xMin : undefined,
-    xMax: xAxis.kind === 'num' ? _xMax : undefined,
-  }
+  /** 极角 — 按 dimY 均分、12 点钟起 */
+  angle: ($_el, $c, $_$iX, $iY) => ($iY / $c.dY) * TAU - Math.PI / 2,
 
-  for (let _i = 0; _i < $model.count; _i++) {
-    const el = $model.elements[$model.src[_i]]
-    if (!el) continue
-    const dimX = $model.dimX[_i]
-    const dimY = $model.dimY[_i]
+  /** 极径 — 值 → 半径 */
+  rad: ($el, $c) => Hm_map($el.value, 0, $c.v1, 0, radarR($c.w, $c.h)),
 
-    // 纯位置投影（只写 x/y）
-    const tx = $locator.x.at(el, dimX, dimY, ctx)
-    const ty = $locator.y.at(el, dimX, dimY, ctx)
-
-    // centered-anchor rect (Shapes.rectC) — the projection anchors the rect
-    // CENTER; convert to the top-left the renderer expects so the element
-    // sits symmetric on its column-center tick
-    let px = tx
-    let py = ty
-    if ($model.type[_i] === Prim.Rect && $model.aux[_i * GEO_SLOTS_EACH_ELEM] === 1) {
-      px = tx - $model.w[_i] / 2
-      py = ty - $model.h[_i] / 2
-    }
-
-    // 位置只 snap 不动画（缩放动画归 render）
-    if ($model.x[_i] !== px || $model.y[_i] !== py) {
-      $model.x[_i] = px
-      $model.y[_i] = py
-      $model.markDirty(_i)
-    }
-  }
-
-  return ctx
+  /** 常量轴 — 圆心 / 原点 */
+  cx: ($_el, $c) => $c.w / 2,
+  cy: ($_el, $c) => $c.h / 2,
 }
 
-/** 声明（name | locator | fn）→ 定位器（解析 + 投影 + 挂 ctx 单点完成；engine coord task 调用） */
-export function resolveCoordLocator(
-  $rule: CoordRule,
-  $model: TsuModel,
-  $width: number,
-  $height: number,
-): ITsukiyoLocator {
-  let _loc: ITsukiyoLocator
+/** radar 成对常量 — 同一套 cos/sin 推导 */
+function radarPair($dim: 'x' | 'y'): Proj {
+  return ($el, $c, $_$iX, $iY) => {
+    const ang = ARC_START_ANGLE + ($iY / Math.max(1, $c.dY)) * TAU
+    const r = Hm_map($el.value, 0, $c.v1, 0, radarR($c.w, $c.h))
+    return $dim === 'x'
+      ? $c.w / 2 + Math.cos(ang) * r
+      : $c.h / 2 + Math.sin(ang) * r
+  }
+}
+
+export const Radar: Record<'x' | 'y', Proj> = { x: radarPair('x'), y: radarPair('y') }
+
+// —— 唯一简写 ——
+// 图表类型是「投影的组合」不是类——只保留 Bar（分类 × 值）一条简写、其余用函数组合：
+// 饼/玫瑰 Axis.cx/cy、散点 Axis.x + Axis.v + dom.x、雷达 Radar.x/y + grid: 'radar'
+const BAND_VALUE: ITsukiyoLocator = { x: Axis.band, y: Axis.v, grid: 'cartesian' }
+const BUILTIN: Record<string, ITsukiyoLocator> = { Bar: BAND_VALUE }
+
+/** 声明（名 | locator | 工厂）→ locator（纯解析） */
+export function resolveLocator($rule: CoordRule, $w: number, $h: number, $dY: number): ITsukiyoLocator {
   if (typeof $rule === 'string') {
-    const preset = builtin[$rule]
+    const preset = BUILTIN[$rule]
     if (!preset) {
-      console.warn(`[tsukiyo] 未知 coord 名称 "${$rule}"，回退默认 Bar`)
-      _loc = { ...builtin.Bar }
-    } else {
-      _loc = { ...preset }   // 浅拷贝 — 多 Engine 共享 preset 防 ctx 污染（轴函数纯函数复用）
+      console.warn(`[tsukiyo] unknown coord "${$rule}" — falling back to Bar`)
+      return { ...BAND_VALUE, ctx: null }
     }
-  } else if (typeof $rule === 'function') {
-    _loc = $rule({ width: $width, height: $height, dimYCount: $model.dimYMap.size || 1 })
-  } else {
-    _loc = $rule
+    return { ...preset, ctx: null }
   }
-  _loc.ctx = coordTask($model, _loc, $width, $height)
-  return _loc
+  if (typeof $rule === 'function') return $rule({ width: $w, height: $h, dimYCount: $dY })
+  // 数值轴必须显式声明域字段 —— 写错就报错、不做静默兜底
+  if ($rule.x === Axis.x && $rule.dom?.x === undefined) {
+    console.warn('[tsukiyo] Axis.x requires dom: { x: "<field>" } — anchors will be NaN')
+  }
+  return $rule
+}
+
+/**
+ * coord 阶段 — 纯投影：逐槽求 x/y、再按形状声明的 anchor 归一
+ */
+export function coord($model: TsuModel, $rule: CoordRule, $ctx: CoordCtx): ITsukiyoLocator {
+  const loc = resolveLocator($rule, $ctx.w, $ctx.h, $ctx.dY)
+  // dom 声明随 locator 携带、ctx.domX 是它在数值轴上的投影
+  loc.ctx = { ...$ctx, domX: loc.dom?.x ?? $ctx.domX }
+
+  const x = loc.x
+  const y = loc.y
+  const n = $model.count
+
+  // 只产锚点 —— 对齐（center / baseBottom）是形状的声明、归 draw 执行
+  // 本阶段零 aux / 零 w-h / 零 kind 判断：锚点即数据点在画布上的位置
+  for (let _ξ = 0; _ξ < n; _ξ++) {
+    const el = $model.elements[$model.src[_ξ]]
+    if (!el) continue
+    const iX = $model.dimX[_ξ]
+    const iY = $model.dimY[_ξ]
+    $model.x[_ξ] = x(el, loc.ctx, iX, iY)
+    $model.y[_ξ] = y(el, loc.ctx, iX, iY)
+  }
+
+  return loc
 }

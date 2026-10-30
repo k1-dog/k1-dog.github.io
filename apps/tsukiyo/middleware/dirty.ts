@@ -1,67 +1,91 @@
 /**
- * dirty — 脏矩形收集/合并/清除（单一职责）：
- * 每帧只重绘脏区域，重叠合并减面积；不做裁剪/渲染/缓存。
+ * TsuDirty — 脏域：δ 槽位位图 + Α 区域集
+ * Λ 折叠 Α ∪ ΑΔ → 本帧重绘域（上帧域并入：旧位 / 旧像素 / 旧填充由单机制清除）
  */
-import type { Bounds } from '../yomi'
+import type { Aabb } from '../yomi'
 
-// AABB 重叠判定
-function overlap($a: Bounds, $b: Bounds): boolean {
-  return (
-    $a[0][0] <= $b[1][0] &&
-    $b[0][0] <= $a[1][0] &&
-    $a[0][1] <= $b[1][1] &&
-    $b[0][1] <= $a[1][1]
-  )
-}
+export class TsuDirty {
+  /** δ — 槽位位图：ξ ∈ δ 即本帧脏 */
+  private δ = new Uint8Array(0)
+  /** Α — 本帧区域集；ΑΔ — 上帧区域集（Δ = 上一代） */
+  private Α: Aabb[] = []
+  private ΑΔ: Aabb[] = []
+  /** full — 全域脏（换代 / 视线移动）：Λ 返回 null、调用方按整屏处理 */
+  private full = false
+  private buf: number[] = []
 
-// 合并两个 AABB
-function merge2($a: Bounds, $b: Bounds): Bounds {
-  return [
-    [Math.min($a[0][0], $b[0][0]), Math.min($a[0][1], $b[0][1])],
-    [Math.max($a[1][0], $b[1][0]), Math.max($a[1][1], $b[1][1])],
-  ]
-}
-
-export class Dirty {
-  private rects: Bounds[] = []
-
-  /** 标记脏区域 */
-  mark($b: Bounds): void {
-    this.rects.push($b)
+  /** ξ ∈ δ（幂等置位） */
+  mark($ξ: number): void {
+    if ($ξ < 0) return
+    if ($ξ >= this.δ.length) {
+      const Δ = new Uint8Array(Math.max($ξ + 1, this.δ.length * 2, 64))
+      Δ.set(this.δ)
+      this.δ = Δ
+    }
+    this.δ[$ξ] = 1
   }
 
-  /** 合并重叠的脏矩形，返回最小不相交集合 */
-  merge(): Bounds[] {
-    if (this.rects.length <= 1) return [...this.rects]
+  /** 0..n-1 ∈ δ（元素集整体换代） */
+  markAll($n: number): void {
+    if ($n <= 0) return
+    if ($n > this.δ.length) {
+      const Δ = new Uint8Array(Math.max($n, this.δ.length * 2, 64))
+      Δ.set(this.δ)
+      this.δ = Δ
+    }
+    this.δ.fill(1, 0, $n)
+  }
 
-    // 按 minX 排序后线性扫描合并
-    const sorted = [...this.rects].sort(($a, $b) => $a[0][0] - $b[0][0])
-    const out: Bounds[] = [sorted[0]]
+  /** a ∈ Α */
+  markArea($a: Aabb): void {
+    this.Α.push([[$a[0][0], $a[0][1]], [$a[1][0], $a[1][1]]])
+  }
 
-    for (let _i = 1; _i < sorted.length; _i++) {
-      const last = out[out.length - 1]
-      if (overlap(last, sorted[_i])) {
-        out[out.length - 1] = merge2(last, sorted[_i])
-      } else {
-        out.push(sorted[_i])
+  /** full ← true */
+  markFull(): void {
+    this.full = true
+  }
+
+  /** full 标志探视 — 下次 Λ 折叠是否整屏重绘 */
+  get isFull(): boolean {
+    return this.full
+  }
+
+  /** 扫 δ 取 ξ 集合并清空（复用缓冲） */
+  drain(): number[] {
+    const out = this.buf
+    out.length = 0
+    const δ = this.δ
+    for (let _ξ = 0; _ξ < δ.length; _ξ++) {
+      if (δ[_ξ]) {
+        out.push(_ξ)
+        δ[_ξ] = 0
       }
     }
     return out
   }
 
-  /** 原子操作：取合并结果并清空 */
-  consume(): Bounds[] {
-    const r = this.merge()
-    this.clear()
-    return r
-  }
+  /** Λ(Α ∪ ΑΔ) → 合并域；ΑΔ ← Α 轮转full ⇒ null（整屏） */
+  Λ(): Aabb | null {
+    const wasFull = this.full
+    this.full = false
 
-  /** 清空所有脏区域 */
-  clear(): void {
-    this.rects.length = 0
-  }
+    let _x0 = Infinity, _y0 = Infinity, _x1 = -Infinity, _y1 = -Infinity
+    for (const pool of [this.Α, this.ΑΔ]) {
+      for (const a of pool) {
+        if (a[0][0] < _x0) _x0 = a[0][0]
+        if (a[0][1] < _y0) _y0 = a[0][1]
+        if (a[1][0] > _x1) _x1 = a[1][0]
+        if (a[1][1] > _y1) _y1 = a[1][1]
+      }
+    }
 
-  get empty(): boolean {
-    return this.rects.length === 0
+    const Δ = this.ΑΔ
+    this.ΑΔ = this.Α
+    this.Α = Δ
+    this.Α.length = 0
+
+    if (wasFull || _x0 > _x1) return null
+    return [[_x0, _y0], [_x1, _y1]]
   }
 }
